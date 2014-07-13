@@ -42,3 +42,12 @@ func Clear() {
 	x = 0
 	y = 0
 }
+
+func Error(i int){
+	if i < 3 {
+		Print("ERROR: index out of range")
+		return
+	}
+	Print("ERROR")
+	 //on a phone, can`t backspace
+}
