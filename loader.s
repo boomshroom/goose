@@ -13,6 +13,7 @@ global __go_runtime_error
 global __unsafe_get_addr
 
 extern go.kernel.Kmain
+extern go.video.Error
 
 ; Multiboot stuff
 MODULEALIGN equ  1<<0
@@ -53,6 +54,7 @@ __unsafe_get_addr:  ; Allows us to convert int -> ptr in go
 
 ; Go compatibility - noop'd
 __go_runtime_error:
+    call go.video.Error
 __go_register_gc_roots:
     ret
 
