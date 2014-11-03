@@ -35,7 +35,6 @@ func SetupIDT() {
 	IDT |= (uint64(uintptr(unsafe.Pointer(&table))) & 0xFFFFFFFF) << 16
 	loadTable()
 	loadIDT()
-	//genericInt()
 
 	copyStr(&ErrorMsg[0], "Division By Zero Exception")
 	copyStr(&ErrorMsg[1], "Debug Exception")
@@ -80,12 +79,6 @@ func SetupIRQ() {
 	table[47] = Pack(IDTDesc{Offset: uint32(ptr.FuncToPtr(irq15)), Selector: 0x08, TypeAttr: 0x8E})
 
 	asm.EnableInts()
-	//dummy := pitHandler
-	//IrqRoutines[0] = **(**uintptr)(unsafe.Pointer(&dummy))
-}
-
-func Irq0() {
-	//irq0()
 }
 
 //extern __load_idt
@@ -115,14 +108,11 @@ func remapIRQ() {
 	
 	asm.OutportB(0x21, master)
 	asm.OutportB(0xA1, slave)
-	//asm.OutportB(0x21, 0xFF)
-	//asm.OutportB(0xA1, 0xFF)
 }
 
 var ErrorMsg [20][40]byte
 
 func ISR(r *regs.Regs) {
-	//video.PrintHex(uint64(r.IntNo), false, true, true, 8)
 
 	if r.IntNo < 32 {
 		
@@ -162,7 +152,6 @@ func IRQ(r *regs.Regs) {
 			return
 		}
 	}
-	//video.PrintHex(uint64(r.IntNo), false, true, true, 4)
 	var handler uintptr = IrqRoutines[r.IntNo-32]
 	if handler != 0 {
 		call(handler, r)
@@ -181,10 +170,6 @@ func PtrToFunc(ptr uintptr) func(r *regs.Regs) //Y U no allow (func())(unsafe.Po
 
 //extern go.pit.Handler
 func pitHandler(r *regs.Regs)
-
-//func Table()*[size]IDTDescPacked{
-//	return (*[size]IDTDescPacked)(ptr.GetAddr(table))
-//}
 
 func loadTable() {
 	table[0] = Pack(IDTDesc{Offset: uint32(ptr.FuncToPtr(isr0)), Selector: 0x08, TypeAttr: 0x8E})

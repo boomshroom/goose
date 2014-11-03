@@ -47,8 +47,6 @@ var kbdus [128]uint8 = [128]uint8{
 	0,	/* All other keys are undefined */
 }
 
-//var shift bool
-
 func handler(r *regs.Regs) {
 	scancode := asm.InportB(0x60)
 	
@@ -61,5 +59,4 @@ func handler(r *regs.Regs) {
 func Init() {
 	dummy := handler
 	idt.AddIRQ(1, **(**uintptr)(unsafe.Pointer(&dummy)))
-	video.Println("Keyboard Initialized")
 }

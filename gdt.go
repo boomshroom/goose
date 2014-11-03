@@ -3,11 +3,8 @@ package gdt
 
 import (
 	"unsafe"
-	//"ptr"
 	"video"
 )
-
-//type GDTDescPacked [8]uint8
 
 type GDTDesc struct{
 	Base uint32
@@ -15,9 +12,8 @@ type GDTDesc struct{
 	Type uint8
 }
 
-//var GDT uint64
 const size uint16 = 5
-var Table [size][8]uint8//GDTDescPacked
+var Table [size][8]uint8
 
 var tss [27]uint32
 
@@ -52,12 +48,9 @@ func SetupGDT(){
 		err[i] = "GDT entry too large"[i]
 	}
 
-	//GDT = uint64((size*48)-1)
-	//GDT |= (uint64(uintptr(unsafe.Pointer(&Table))) & 0xFFFFFFFF) << 16
 	loadTable()
 	loadGDT(&Table, unsafe.Sizeof(Table))
 	reloadSegments()
-	//genericInt()
 }
 
 //extern __load_gdt
@@ -65,10 +58,6 @@ func loadGDT(*[size][8]uint8, uintptr)
 
 //extern __reload_segments
 func reloadSegments()
-
-//func Table()*[size]GDTDescPacked{
-//	return (*[size]GDTDescPacked)(ptr.GetAddr(table))
-//}
 
 func loadTable(){
 	Table[0] = Pack(GDTDesc{Base:0, Limit:0, Type:0})

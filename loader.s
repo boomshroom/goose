@@ -11,10 +11,8 @@ global __go_register_gc_roots
 global __go_runtime_error
 global __go_type_hash_identity
 global __go_type_equal_identity
-;global __go_strcomp
 global __go_print_string
 global __go_print_nl
-;global __go_set_closure
 
 global __load_idt
 global __load_gdt
@@ -25,11 +23,8 @@ global __call
 global __remap_irq
 global __reload_segments
 
-;global __unsafe_get_addr
-
 extern go.kernel.Kmain
 extern go.video.Error
-;extern go.runtime.StringComp
 extern go.video.Print
 extern go.video.NL
 
@@ -69,20 +64,14 @@ loader:
 ; Go compatibility - noop'd
 __go_runtime_error:
     jmp go.video.Error
-;__go_register_gc_roots:
-;    ret
 __go_type_hash_identity:
     ret
 __go_type_equal_identity:
     ret
-;__go_strcmp:
-;    jmp go.runtime.StringComp
 __go_print_string:
     jmp go.video.Print
 __go_print_nl:
     jmp go.video.NL
-;__go_set_closure:
-;    ret
     
 __load_idt:
     lidt [go.idt.IDT]
@@ -110,10 +99,6 @@ __reload_segments:
 	mov gs, ax
 	mov ss, ax
 	ret
-    
-__test_int:
-    int 33
-    ret
     
 __call:
 	push ebp
@@ -148,18 +133,6 @@ __remap_irq:
     out 0xA1, al
     pop eax
     ret
-
-extern go.video.PutChar
-global __test_args
-__test_args:
-;    push ebp
-;    mov ebp, esp
-;    sub esp, 4
-;    mov esp, 65
-    ;push 0x41
-    jmp go.video.PutChar
-;    pop ebp
-;    ret
 
 section .bss
 

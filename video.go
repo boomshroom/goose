@@ -3,12 +3,11 @@ package video
 import (
 	"color"
 	"ptr"
-	//"unsafe"
 )
 
 var x, y int
 var termColor color.Color
-var vidMem uintptr //*[25][80][2]byte
+var vidMem uintptr
 
 func vidPtr() *[25][80][2]byte {
 	return (*[25][80][2]byte)(ptr.GetAddr(vidMem))
@@ -16,9 +15,7 @@ func vidPtr() *[25][80][2]byte {
 
 func Init() {
 	vidMem = 0xB8000
-	//vidmem = uintptr(0xB8000)
 	termColor = color.MakeColor(color.LIGHT_GRAY, color.BLACK)
-	//PrintHex(uint64(uintptr(unsafe.Pointer(&vidMem))), false, true, true, 8)
 }
 
 func SetColor(c color.Color) {
@@ -56,13 +53,6 @@ func PrintHex(num uint64, caps, prefix, newline bool, digits int8) {
 		NL()
 	}
 }
-
-/*
-func PrintInt(num interface{}, base, digits int8, caps, prefix bool){
-	switch num.(type){
-		default:
-	}
-}*/
 
 func Int4ToHex(digit uint8, caps bool) rune {
 	if digit < 10 {
@@ -126,7 +116,7 @@ func Clear() {
 	updateCursor()
 }
 
-func MoveCursor(dx, dy int8){
+func MoveCursor(dx, dy int){
 	x += dx
 	y += dy
 	updateCursor()
@@ -155,6 +145,3 @@ func Scroll() {
 	}
 	y = 24
 }
-
-//type Printer struct {
-//}
