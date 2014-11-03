@@ -43,7 +43,7 @@ boot: kernel.iso
 	$(GO_CROSS) $(GOFLAGS_CROSS) $(INCLUDE_DIRS) -o $@ -c $<
 
 kernel.bin: $(SOURCE_OBJECTS)
-	$(LD_CROSS) -T link$(PAGE).ld -o kernel.bin $(SOURCE_OBJECTS)
+	$(LD_CROSS) -T link.ld -o kernel.bin $(SOURCE_OBJECTS)
  
 kernel.iso: kernel.bin
 	cp kernel.bin isodir/boot/kernel.bin
