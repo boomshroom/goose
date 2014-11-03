@@ -2,3 +2,5 @@
 *.gox
 *.bin
 *.img
+*.iso
+*.c

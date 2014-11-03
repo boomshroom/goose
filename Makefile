@@ -1,9 +1,9 @@
 ### Build params
 
-CC_CROSS = i586-elf-gcc
-LD_CROSS = i586-elf-ld
-GO_CROSS = i586-elf-gccgo
-OBJCOPY = i586-elf-objcopy
+CC_CROSS = i686-elf-gcc
+LD_CROSS = i686-elf-ld
+GO_CROSS = i686-elf-gccgo
+OBJCOPY = i686-elf-objcopy
 PREPROC = $(CC_CROSS) -E -x c -P
 CC = gcc
 LD = ld
@@ -14,23 +14,22 @@ INCLUDE_DIRS = -I.
 
 ### Sources
 
-CORE_SOURCES = loader.o video.go.o video.gox goose.go.o 
+CORE_SOURCES = loader.o interupts.o asm.o asm.go.o asm.gox regs.go.o regs.gox ptr.go.o ptr.gox color.go.o color.gox video.go.o video.gox gdt.go.o gdt.gox idt.go.o idt.gox pit.go.o pit.gox kbd.go.o kbd.gox goose.go.o
 
 SOURCE_OBJECTS = $(CORE_SOURCES)
-
  
 ### Targets
 
-all: kernel.img
+all: kernel.iso
 
 clean:
-	rm -f $(SOURCE_OBJECTS) $(TEST_EXECS) kernel.bin kernel.img
+	rm -f $(SOURCE_OBJECTS) $(TEST_EXECS) kernel.bin isodir/boot/kernel.bin kernel.iso
 
 boot-nogrub: kernel.bin
-	qemu-system-i386 -kernel kernel.bin
+	qemu-system-i386 -kernel kernel.bin -m 1024
 
-boot: kernel.img
-	qemu-system-i386 -fda kernel.img 
+boot: kernel.iso
+	qemu-system-i386 -cdrom kernel.iso
 
 ### Rules
 
@@ -44,9 +43,8 @@ boot: kernel.img
 	$(GO_CROSS) $(GOFLAGS_CROSS) $(INCLUDE_DIRS) -o $@ -c $<
 
 kernel.bin: $(SOURCE_OBJECTS)
-	$(LD_CROSS) -T link.ld -o kernel.bin $(SOURCE_OBJECTS)
+	$(LD_CROSS) -T link$(PAGE).ld -o kernel.bin $(SOURCE_OBJECTS)
  
-kernel.img: kernel.bin
-	cp floppy.img.template kernel.img
-	mcopy -i kernel.img -/ grub/ ::/
-	mcopy -i kernel.img kernel.bin ::/
+kernel.iso: kernel.bin
+	cp kernel.bin isodir/boot/kernel.bin
+	grub-mkrescue -o kernel.iso isodir
