@@ -20,7 +20,6 @@ global __generic_isr
 global __test_int
 global __arbitrary_convert
 global __call
-global __remap_irq
 global __reload_segments
 
 extern go.kernel.Kmain
@@ -111,28 +110,6 @@ __call:
 	ret
     
 __arbitrary_convert: ret
-
-__remap_irq:
-    push eax
-    mov al, 0x11
-    out 0x20, al
-    out 0xA0, al
-    mov al, 0x20
-    out 0x21, al
-    mov al, 0x28
-    out 0xA1, al
-    mov al, 0x04
-    out 0x21, al
-    mov al, 0x02
-    out 0xA1, al
-    mov al, 0x01
-    out 0x21, al
-    out 0xA1, al
-    mov al, 0x00
-    out 0x21, al
-    out 0xA1, al
-    pop eax
-    ret
 
 section .bss
 
