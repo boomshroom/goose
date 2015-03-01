@@ -36,26 +36,26 @@ func SetupIDT() {
 	loadTable()
 	loadIDT()
 
-	copyStr(&ErrorMsg[0], "Division By Zero Exception")
-	copyStr(&ErrorMsg[1], "Debug Exception")
-	copyStr(&ErrorMsg[2], "Non Maskable Interrupt Exception")
-	copyStr(&ErrorMsg[3], "Breakpoint Exception")
-	copyStr(&ErrorMsg[4], "Into Detected Overflow Exception")
-	copyStr(&ErrorMsg[5], "Out of Bounds Exception")
-	copyStr(&ErrorMsg[6], "Invalid Opcode Exception")
-	copyStr(&ErrorMsg[7], "No Coprocessor Exception")
-	copyStr(&ErrorMsg[8], "Double Fault Exception")
-	copyStr(&ErrorMsg[9], "Coprocessor Segment Overrun Exception")
-	copyStr(&ErrorMsg[10], "Bad TSS Exception")
-	copyStr(&ErrorMsg[11], "Segment Not Present Exception")
-	copyStr(&ErrorMsg[12], "Stack Fault Exception")
-	copyStr(&ErrorMsg[13], "General Protection Fault Exception")
-	copyStr(&ErrorMsg[14], "Page Fault Exception")
-	copyStr(&ErrorMsg[15], "Unknown Interrupt Exception")
-	copyStr(&ErrorMsg[16], "Coprocessor Fault Exception")
-	copyStr(&ErrorMsg[17], "Alignment Check Exception (486+)")
-	copyStr(&ErrorMsg[18], "Machine Check Exception (Pentium/586+)")
-	copyStr(&ErrorMsg[19], "Reserved Exception")
+	video.CopyStr(&ErrorMsg[0], "Division By Zero Exception")
+	video.CopyStr(&ErrorMsg[1], "Debug Exception")
+	video.CopyStr(&ErrorMsg[2], "Non Maskable Interrupt Exception")
+	video.CopyStr(&ErrorMsg[3], "Breakpoint Exception")
+	video.CopyStr(&ErrorMsg[4], "Into Detected Overflow Exception")
+	video.CopyStr(&ErrorMsg[5], "Out of Bounds Exception")
+	video.CopyStr(&ErrorMsg[6], "Invalid Opcode Exception")
+	video.CopyStr(&ErrorMsg[7], "No Coprocessor Exception")
+	video.CopyStr(&ErrorMsg[8], "Double Fault Exception")
+	video.CopyStr(&ErrorMsg[9], "Coprocessor Segment Overrun Exception")
+	video.CopyStr(&ErrorMsg[10], "Bad TSS Exception")
+	video.CopyStr(&ErrorMsg[11], "Segment Not Present Exception")
+	video.CopyStr(&ErrorMsg[12], "Stack Fault Exception")
+	video.CopyStr(&ErrorMsg[13], "General Protection Fault Exception")
+	video.CopyStr(&ErrorMsg[14], "Page Fault Exception")
+	video.CopyStr(&ErrorMsg[15], "Unknown Interrupt Exception")
+	video.CopyStr(&ErrorMsg[16], "Coprocessor Fault Exception")
+	video.CopyStr(&ErrorMsg[17], "Alignment Check Exception (486+)")
+	video.CopyStr(&ErrorMsg[18], "Machine Check Exception (Pentium/586+)")
+	video.CopyStr(&ErrorMsg[19], "Reserved Exception")
 }
 
 func SetupIRQ() {
@@ -125,12 +125,6 @@ func ISR(r *regs.Regs) {
 			}
 			video.Error(ErrorMsg[r.IntNo], int(r.IntNo), true)
 		}
-	}
-}
-
-func copyStr(array *[40]byte, str string) {
-	for i := 0; i < len(str); i++ {
-		array[i] = str[i]
 	}
 }
 

@@ -1,6 +1,13 @@
-package mem
+package main
 
 var mem [32]int
+
+func main(){
+	 mem[0]=1
+	 i:=Malloc(8)
+	 Malloc(2)
+	 Free(i)
+}
 
 func Malloc(size int)int{
 	if size==0{

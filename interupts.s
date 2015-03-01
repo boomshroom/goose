@@ -1,3 +1,4 @@
+bits 32
 global __isr0
 global __isr1
 global __isr2

@@ -12,14 +12,16 @@ type GDTDesc struct{
 	Type uint8
 }
 
+type GDTDescPacked [8]uint8
+
 const size uint16 = 5
-var Table [size][8]uint8
+var Table [size]GDTDescPacked
 
 var tss [27]uint32
 
 var err [40]byte
 
-func Pack(desc GDTDesc)(g [8]uint8){
+func Pack(desc GDTDesc)(g GDTDescPacked){
 	if desc.Limit > 65536 && (desc.Limit & 0xFFF != 0xFFF){
 		video.Error(err, int(desc.Limit), true)
 	}
@@ -54,7 +56,7 @@ func SetupGDT(){
 }
 
 //extern __load_gdt
-func loadGDT(*[size][8]uint8, uintptr)
+func loadGDT(*[size]GDTDescPacked, uintptr)
 
 //extern __reload_segments
 func reloadSegments()

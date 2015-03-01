@@ -51,7 +51,13 @@ func handler(r *regs.Regs) {
 	scancode := asm.InportB(0x60)
 	
 	if scancode & 0x80 == 0{
-		video.PutChar(rune(kbdus[scancode]))
+		switch scancode{
+		case 0x4B: video.MoveCursor(-1,0)
+		case 0x48: video.MoveCursor(0,-1)
+		case 0x50: video.MoveCursor(0,1)
+		case 0x4D: video.MoveCursor(1,0)
+		default: video.PutChar(rune(kbdus[scancode]))
+		}
 	}else{
 	}
 }

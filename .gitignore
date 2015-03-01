@@ -1,6 +1,1 @@
-*.o
-*.gox
-*.bin
-*.img
-*.iso
-*.c
+pkg/*
