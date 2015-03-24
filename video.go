@@ -20,7 +20,7 @@ func vidPtr() *[25][80]VidEntry {
 }
 
 func Init() {
-	vidMem = 0xB8000
+	vidMem = 0x000B8000
 	termColor = color.MakeColor(color.LIGHT_GRAY, color.BLACK)
 	initErrs()
 	//ioPort = *(*uint16)(ptr.GetAddr(0x46C))

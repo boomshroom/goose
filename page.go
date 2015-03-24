@@ -8,11 +8,9 @@ type PageEntryPacked uint64
 
 type Page [512]PageEntryPacked
 
-type DirPointerTable [4]uint64
-
 type PageEntry struct{
 	Address uint64
-	Global, Size, Dirty, Accessed, CacheDisable, WriteThrough, User, ReadWrite, Present bool
+	Global, Large, Dirty, Accessed, CacheDisable, WriteThrough, User, ReadWrite, Present bool
 }
 
 const(
@@ -23,17 +21,17 @@ const(
 	CACHE_DISABLED
 	ACCESSED
 	DIRTY
-	SIZE
+	LARGE
 	GLOBAL
 )
 
-func PackEntry(entry PageEntry)PageEntryPacked{
-	e := PageEntryPacked(entry.Address  & 0xFFFFFFFFFFFFF000)
+func (entry PageEntry)Pack()PageEntryPacked{
+	e := PageEntryPacked(entry.Address & 0xFFFFFFFFFFFFF000)
 	if entry.Global{
 		e |= GLOBAL
 	}
-	if entry.Size{
-		e |= SIZE
+	if entry.Large{
+		e |= LARGE
 	}
 	if entry.Dirty{
 		e |= DIRTY
@@ -59,20 +57,32 @@ func PackEntry(entry PageEntry)PageEntryPacked{
 	return e
 }
 
+func (entry PageEntryPacked)Unpack()PageEntry{
+	return PageEntry{Address: uint64(entry) & 0xFFFFFFFFFFFFF000, 
+		Global: entry & GLOBAL !=0, 
+		Large: entry & LARGE !=0, 
+		Dirty: entry & DIRTY !=0, 
+		Accessed: entry & ACCESSED !=0, 
+		CacheDisable: entry & CACHE_DISABLED !=0, 
+		WriteThrough: entry & WRITE_THROUGH !=0, 
+		User: entry & USER !=0, 
+		ReadWrite: entry & READ_WRITE !=0, 
+		Present: entry & PRESENT !=0}
+}
+
+func(entry PageEntryPacked)Address()uintptr{
+	return uintptr(entry) & 0xFFFFF000
+}
+
 var(
-	//pageAlignedEnd uintptr = (end & 0xFFFFF000) + 0x1000
-	PageDir uintptr
-	firstPage uintptr
+	kernelPage uintptr
 	dirPtrTable uintptr
-	mapl4 uintptr
+	Mapl4 uintptr
+	bootstrapPage uintptr
 )
 
 func page(p uintptr)*Page{
 	return (*Page)(ptr.GetAddr(p & 0xFFFFF000))
-}
-
-func ptrTable(p uintptr)*DirPointerTable{
-	return (*DirPointerTable)(ptr.GetAddr(p & 0xFFFFFFE0))
 }
 
 //extern __kernel_end
@@ -82,26 +92,25 @@ func kernelEnd()uintptr
 func enable(uintptr)
 
 func Init(){
-
-	mapl4 = (kernelEnd() & 0xFFFFF000) + 0x1000
-	dirPtrTable = mapl4
-	PageDir = mapl4 + 0x1000
-	firstPage = mapl4 + 0x2000
+	Mapl4 = (kernelEnd() & 0xFFFFF000) + 0x1000
+	dirPtrTable = Mapl4 + 0x1000
+	bootstrapPage = Mapl4 + 0x2000
+	kernelPage = Mapl4 + 0x3000
 	
-	//page(mapl4)[0] = PackEntry(PageEntry{Address: uint64(dirPtrTable), ReadWrite: true, Present: true}) //superviser level, read/write, present
-	ptrTable(dirPtrTable)[0] = uint64(PageDir) | 3
-
-	for i:=0;i<512;i++{
-		page(PageDir)[i] = READ_WRITE //superviser level, read/write, not present
-		
-		page(firstPage)[i] = PackEntry(PageEntry{Address: uint64(i<<12), ReadWrite: true, Present: true}) //superviser level, read/write, present
-		
-		//ptrTable(dirPtrTable)[i] = (uint64(i)<<12) | 3
+	page(Mapl4)[0] = PageEntry{Address: uint64(dirPtrTable), ReadWrite: true, Present:true}.Pack()
+	page(dirPtrTable)[0] = PageEntry{Address: uint64(bootstrapPage), ReadWrite: true, Present:true}.Pack()
+	page(kernelPage)[0] = PageEntry{Address: 0x200000, Large: true, ReadWrite: true, Present:true}.Pack()
+	page(dirPtrTable)[3] = PageEntry{Address: uint64(kernelPage), ReadWrite: true, Present:true}.Pack()
+	page(bootstrapPage)[0] = PageEntry{Address: 0, Large: true, Present:true, ReadWrite:true}.Pack()
+	
+	for i:=1; i<512; i++{
+		page(Mapl4)[i] = 0
+		if i!=3{
+			page(dirPtrTable)[i]  = 0
+		}
+		page(kernelPage)[i]  = 0
+		page(bootstrapPage)[i] = 0
 	}
-	
-	page(PageDir)[0] |= PackEntry(PageEntry{Address: uint64(firstPage), ReadWrite: true, Present: true}) //superviser level, read/write, present
-	
-	//page(PageDir)[511] = 
 	
 	enable(dirPtrTable)
 }

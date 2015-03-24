@@ -12,6 +12,9 @@ func enableInts()
 //extern io_wait
 func ioWait()
 
+//extern memcpy
+func memcpy(dest, src, size uintptr)
+
 func OutportB(port uint16, data uint8) {
 	outportB(port, data)
 }

@@ -21,7 +21,7 @@ var tss [27]uint32
 
 var err [40]byte
 
-func Pack(desc GDTDesc)(g GDTDescPacked){
+func (desc GDTDesc)Pack()(g GDTDescPacked){
 	if desc.Limit > 65536 && (desc.Limit & 0xFFF != 0xFFF){
 		video.Error(err, int(desc.Limit), true)
 	}
@@ -62,8 +62,8 @@ func loadGDT(*[size]GDTDescPacked, uintptr)
 func reloadSegments()
 
 func loadTable(){
-	Table[0] = Pack(GDTDesc{Base:0, Limit:0, Type:0})
-	Table[1] = Pack(GDTDesc{Base:0, Limit:0xFFFFFFFF, Type:0x9A})
-	Table[2] = Pack(GDTDesc{Base:0, Limit:0xFFFFFFFF, Type:0x92})
-	Table[3] = Pack(GDTDesc{Base:uint32(uintptr(unsafe.Pointer(&tss[0]))), Limit:uint32(unsafe.Sizeof(tss)), Type:0x89})
+	Table[0] = GDTDesc{Base:0, Limit:0, Type:0}.Pack()
+	Table[1] = GDTDesc{Base:0, Limit:0xFFFFFFFF, Type:0x9A}.Pack()
+	Table[2] = GDTDesc{Base:0, Limit:0xFFFFFFFF, Type:0x92}.Pack()
+	Table[3] = GDTDesc{Base:uint32(uintptr(unsafe.Pointer(&tss[0]))), Limit:uint32(unsafe.Sizeof(tss)), Type:0x89}.Pack()
 }

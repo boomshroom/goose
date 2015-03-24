@@ -13,8 +13,8 @@ GOFLAGS_CROSS = -static  -Werror -nostdlib -nostartfiles -nodefaultlibs
 INCLUDE_DIRS = -Ipkg/.
 
 ### Sources
-
-CORE_SOURCES = pkg/loader.o pkg/interupts.o pkg/asm.o pkg/asm.go.o pkg/asm.gox pkg/regs.go.o pkg/regs.gox pkg/ptr.go.o pkg/ptr.gox pkg/color.go.o pkg/color.gox pkg/video.go.o pkg/video.gox pkg/types.go.o pkg/types.gox pkg/page.go.o pkg/page.gox pkg/gdt.go.o pkg/gdt.gox pkg/idt.go.o pkg/idt.gox pkg/pit.go.o pkg/pit.gox pkg/kbd.go.o pkg/kbd.gox pkg/goose.go.o
+CORE_SOURCES = 64bit/kernel64.o pkg/loader.o pkg/ptr.go.o pkg/ptr.gox pkg/elf.go.o pkg/elf.gox pkg/page.go.o pkg/page.gox pkg/types.go.o pkg/types.gox pkg/goose.go.o
+# Disabled Sources # pkg/color.go.o pkg/color.gox pkg/video.go.o pkg/video.gox pkg/interupts.o pkg/asm.o pkg/asm.go.o pkg/asm.gox pkg/regs.go.o pkg/regs.gox pkg/gdt.go.o pkg/gdt.gox pkg/idt.go.o pkg/idt.gox pkg/pit.go.o pkg/pit.gox pkg/kbd.go.o pkg/kbd.gox 
 
 SOURCE_OBJECTS = $(CORE_SOURCES)
  
@@ -24,12 +24,13 @@ all: kernel.iso
 
 clean:
 	rm -f $(SOURCE_OBJECTS) $(TEST_EXECS) pkg/kernel.bin isodir/boot/kernel.bin kernel.iso
+	make -C 64bit clean
 
 boot-nogrub: kernel.bin
 	qemu-system-i386 -kernel pkg/kernel.bin -m 1024
 
 boot: kernel.iso
-	qemu-system-i386 -cdrom kernel.iso
+	qemu-system-x86_64 -cdrom kernel.iso
 
 ### Rules
 
@@ -48,3 +49,6 @@ kernel.bin: $(SOURCE_OBJECTS)
 kernel.iso: kernel.bin
 	cp pkg/kernel.bin isodir/boot/kernel.bin
 	grub-mkrescue -o kernel.iso isodir
+	
+64bit/kernel64.o:
+	make -C 64bit kernel64

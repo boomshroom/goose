@@ -1,33 +1,26 @@
 ENTRY (loader)
+OUTPUT_FORMAT(elf32-i386)
 
 SECTIONS
 {
 
     . = 0x00100000;
-    kernel_start = .;
 
-    .text ALIGN (0x1000) :
-    {
-        *(.text)
+    .text ALIGN (0x1000): {
+	*(.text)
+	*(.rodata*)
     }
 
-    .rodata ALIGN (0x1000) :
-    {
-        *(.rodata*)
-    }
-
-    .data ALIGN (0x1000) :
-    {
+    .data ALIGN (0x1000) : {
         *(.data)
     }
 
-    .bss :
-    {
-        sbss = .;
+    .bss : {
+        _sbss = .;
         *(COMMON)
         *(.bss)
-        ebss = .;
+        _ebss = .;
     }
-    
+	
     kernel_end = .;
 }

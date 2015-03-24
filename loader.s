@@ -7,48 +7,27 @@ global magic
 global mbd
 
 ; Go compatibility
-global __go_register_gc_roots
 global __go_runtime_error
 global __go_type_hash_identity
 global __go_type_equal_identity
 global __go_type_hash_error
 global __go_type_equal_error
-global __go_print_string
-global __go_print_uint64
-global __go_print_bool
-global __go_print_nl
+global __kill
 
-global __load_idt
-global __load_gdt
-global __generic_isr
-global __test_int
-global __arbitrary_convert
-global __call
-global __reload_segments
 global __enable_paging
-global __kernel_start
 global __kernel_end
-global __kernel_size
+global __get_kernel64
+global __enable_64bit
 
-extern kernel_start
 extern kernel_end
-extern kernel_size
+extern _binary_kernel64_bin_start
 
 extern go.kernel.Kmain
-extern go.kernel.init
 extern go.video.ErrCode
-extern go.video.Print
-extern go.video.PrintUint
-extern go.video.PrintBool
-extern go.video.NL
 extern go.types.HashIdent
 extern go.types.EqualIdent
-extern go.types.HashError
-extern go.types.EqualError
 
-extern go.idt.IDT
-extern go.gdt.GDT
-extern go.idt.ISR
+bits 32
 
 ; Multiboot stuff
 MODULEALIGN equ  1<<0
@@ -59,9 +38,8 @@ CHECKSUM    equ -(MAGIC + FLAGS)
 
 section .text
 
-bits 32
-
 align 4
+MultiBootHeader:
     dd MAGIC
     dd FLAGS
     dd CHECKSUM
@@ -69,83 +47,35 @@ align 4
 STACKSIZE equ 0x4000  ; Define our stack size at 16k
 
 loader:
-    mov  esp, stack + STACKSIZE ; Setup stack pointer
+	
+	mov  esp, stack + STACKSIZE ; Setup stack pointer
+	
+	;push  eax
+	;push  ebx
+	;call go.kernel.init
+	call go.kernel.Kmain   ; Jump to Go's kernel.Kmain
 
-    mov  [magic], eax
-    mov  [mbd], ebx
-
-
-    ;call go.kernel.init
-    call go.kernel.Kmain   ; Jump to Go's kernel.Kmain
-
-    ;cli
-.hang:
-    hlt
-    jmp  .hang
+	cli
+	
+__go_runtime_error:
+__go_type_hash_error:
+__go_type_equal_error:
+__kill:
+	hlt
+	jmp  __kill
 
 ; Go compatibility
-__go_runtime_error:
-    jmp go.video.ErrCode
 __go_type_hash_identity:
     jmp go.types.HashIdent
 __go_type_equal_identity:
     jmp go.types.EqualIdent
-__go_type_hash_error:
-    jmp go.types.HashError
-__go_type_equal_error:
-    jmp go.types.EqualError
-__go_print_string:
-    jmp go.video.Print
-__go_print_uint64:
-    jmp go.video.PrintUint
-__go_print_bool:
-    jmp go.video.PrintBool
-__go_print_nl:
-    jmp go.video.NL
-    
-__load_idt:
-    lidt [go.idt.IDT]
-    ret
-    
-gdtr dw 0
-	dd 0
-    
-__load_gdt:
-    cli
-    mov eax, [esp+4]
-    mov [gdtr+2], eax
-    mov ax, [esp+8]
-    mov [gdtr], ax
-    lgdt [gdtr]
-    ret
-    
-__reload_segments:
-	jmp 0x0008:reload_cs
-    reload_cs:
-	mov ax, 0x10
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
-	mov ss, ax
-	ret
-    
-__call:
-	push ebp
-	mov ebp, esp
-	;sub esp, 0
-	mov eax,  dword [ebp+8]
-	push dword [ebp+12]
-	call eax
-	leave
-	ret
 	
 __enable_paging:
 	push ebp
 	mov ebp, esp
 	
 	mov eax, cr4
-	or eax, 0x20
+	or eax, 0x30
 	mov cr4, eax
 	
 	;mov ecx, 0xC0000080
@@ -158,17 +88,74 @@ __enable_paging:
 	
 	mov eax, cr0
 	or eax, 0x80000000
+	
+	cli
+	
 	mov cr0, eax
 	
 	mov esp, ebp
 	pop ebp
 	ret
-    
-__arbitrary_convert: ret
+	
+GDT64:                           ; Global Descriptor Table (64-bit).
+    .Null: equ $ - GDT64         ; The null descriptor.
+    dw 0                         ; Limit (low).
+    dw 0                         ; Base (low).
+    db 0                         ; Base (middle)
+    db 0                         ; Access.
+    db 0                         ; Granularity.
+    db 0                         ; Base (high).
+    .Code: equ $ - GDT64         ; The code descriptor.
+    dw 0                         ; Limit (low).
+    dw 0                         ; Base (low).
+    db 0                         ; Base (middle)
+    db 10011000b                 ; Access.
+    db 00100000b                 ; Granularity.
+    db 0                         ; Base (high).
+    .Data: equ $ - GDT64         ; The data descriptor.
+    dw 0                         ; Limit (low).
+    dw 0                         ; Base (low).
+    db 0                         ; Base (middle)
+    db 10010000b                 ; Access.
+    db 00000000b                 ; Granularity.
+    db 0                         ; Base (high).
+    .Pointer:                    ; The GDT-pointer.
+    dw $ - GDT64 - 1             ; Limit.
+    dd GDT64                     ; Base.
+    dd 0
 
-__kernel_start:
-	mov eax, kernel_start
-	ret
+__enable_64bit:
+	push ebp
+	mov ebp, esp
+	
+	mov ebx, [esp+12]
+	
+	;mov edx, [esp+8]
+	
+	mov eax, cr0
+	and eax, 01111111111111111111111111111111b
+	mov cr0, eax
+	
+	mov cr3, ebx
+	
+	mov ecx, 0xC0000080
+	rdmsr
+	or eax, 1<<8
+	wrmsr
+	
+	;mov ebx, [esp+8]
+	
+	mov eax, cr0
+	or eax, 0x80000000
+	mov cr0, eax
+	
+	lgdt [GDT64.Pointer]
+	;jmp __kill
+	jmp GDT64.Code:0xc0000000
+    
+__get_kernel64:
+	mov eax, _binary_kernel64_bin_start
+	ret 
 	
 __kernel_end:
 	mov eax, kernel_end
@@ -176,7 +163,5 @@ __kernel_end:
 
 section .bss
 
-align 4
+align 32
 stack: resb STACKSIZE   ; Reserve 16k for stack
-magic: resd 1
-mbd:   resd 1
