@@ -1,1 +1,8 @@
-pkg/*
+efi
+testapp
+*.ini
+*.iso
+*.o
+*.gox
+*.bin
+*.a

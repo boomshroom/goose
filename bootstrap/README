@@ -1,0 +1,1 @@
+A small 32bit bootstap that parses the main kernel's elf file and loads it

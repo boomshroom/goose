@@ -1,5 +1,5 @@
 ;
-; Adapted from osdev.org's Bare Bones tutorial http://wiki.osdev.org/Bare_Bones
+; Adapted from osdev.orgs Bare Bones tutorial http://wiki.osdev.org/Bare_Bones
 ;
 
 global loader
@@ -13,6 +13,7 @@ global __go_type_equal_identity
 global __go_type_hash_error
 global __go_type_equal_error
 global __kill
+global __break
 
 global __enable_paging
 global __kernel_end
@@ -20,9 +21,10 @@ global __get_kernel64
 global __enable_64bit
 
 extern kernel_end
-extern _binary_kernel64_bin_start
+extern _binary_kernel_bin_start
 
-extern go.kernel.Kmain
+extern main.main
+extern __go_init_main
 extern go.video.ErrCode
 extern go.types.HashIdent
 extern go.types.EqualIdent
@@ -52,8 +54,8 @@ loader:
 	
 	;push  eax
 	;push  ebx
-	;call go.kernel.init
-	call go.kernel.Kmain   ; Jump to Go's kernel.Kmain
+	call __go_init_main
+	call main.main
 
 	cli
 	
@@ -75,7 +77,7 @@ __enable_paging:
 	mov ebp, esp
 	
 	mov eax, cr4
-	or eax, 0x30
+	or eax, 0x20
 	mov cr4, eax
 	
 	;mov ecx, 0xC0000080
@@ -95,6 +97,7 @@ __enable_paging:
 	
 	mov esp, ebp
 	pop ebp
+
 	ret
 	
 GDT64:                           ; Global Descriptor Table (64-bit).
@@ -150,11 +153,14 @@ __enable_64bit:
 	mov cr0, eax
 	
 	lgdt [GDT64.Pointer]
-	;jmp __kill
-	jmp GDT64.Code:0xc0000000
+	jmp GDT64.Code:0xC0000000
     
+__break:
+	xchg bx, bx
+	ret
+
 __get_kernel64:
-	mov eax, _binary_kernel64_bin_start
+	mov eax, _binary_kernel_bin_start
 	ret 
 	
 __kernel_end:
