@@ -26,7 +26,7 @@ bochs: kernel.iso
 	bochs -q
 
 kernel.bin: kernel.o bootstrap.a loader.o 
-	$(GO_CROSS) -t link.ld -o isodir/boot/kernel.bin loader.o kernel/kernel.o bootstrap/bootstrap.a 
+	$(GO_CROSS) $(GOFLAGS_CROSS) -t link.ld -o isodir/boot/kernel.bin loader.o kernel/kernel.o bootstrap/bootstrap.a 
  
 kernel.iso: kernel.bin
 	grub-mkrescue -o kernel.iso isodir
