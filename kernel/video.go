@@ -2,29 +2,24 @@ package video
 
 import (
 	"color"
-	"ptr"
+	"unsafe"
 	//"asm"
+	"runtime"
 )
 
 var x, y int
-var termColor color.Color
-var vidMem uintptr
+var termColor color.Color  = color.MakeColor(color.LIGHT_GRAY, color.BLACK)
+var vidMem *[25][80]VidEntry = (*[25][80]VidEntry)(unsafe.Pointer(uintptr(0x000B8000)))
 //var ioPort uint16
 type VidEntry struct{
 	Char byte
 	Color color.Color
 }
 
-func vidPtr() *[25][80]VidEntry {
-	return (*[25][80]VidEntry)(ptr.GetAddr(vidMem))
-}
-
 func init() {
-	vidMem = 0x000B8000
-	termColor = color.MakeColor(color.LIGHT_GRAY, color.BLACK)
-	initErrs()
 	//ioPort = *(*uint16)(ptr.GetAddr(0x46C))
 	Clear()
+	runtime.ErrorPrint = errorMsg
 }
 
 func MakeEntry(char byte)VidEntry{
@@ -36,8 +31,8 @@ func SetColor(c color.Color) {
 }
 
 func Print(line string) {
-	for i := 0; i < len(line); i++ {
-		PutChar(rune(line[i]))
+	for _, ch := range line {
+		PutChar(ch)
 	}
 }
 
@@ -90,7 +85,7 @@ func Int4ToHex(digit uint8, caps bool) rune {
 }
 
 func NL() {
-	vidPtr()[y][x] = MakeEntry(0)
+	vidMem[y][x] = MakeEntry(0)
 	x = 0
 	y++
 }
@@ -100,11 +95,11 @@ func PutChar(c rune) {
 		NL()
 		updateCursor()
 	} else if c == '\t' {
-		vidPtr()[y][x].Color = termColor
+		vidMem[y][x].Color = termColor
 		x += 4 - (x % 4)
 		updateCursor()
 	} else if c == '\b'{
-		vidPtr()[y][x].Color = termColor
+		vidMem[y][x].Color = termColor
 		x--
 		updateCursor()
 	} else{
@@ -115,7 +110,7 @@ func PutCharRaw(c rune) {
 	if y > 24 {
 		Scroll()
 	}
-	vidPtr()[y][x] = MakeEntry(byte(c))
+	vidMem[y][x] = MakeEntry(byte(c))
 	x++
 	if x > 80 {
 		x = 0
@@ -127,7 +122,7 @@ var check = true
 
 func updateCursor(){
 	//vidPtr()[y][x] = MakeEntry(' ')
-	vidPtr()[y][x].Color ^= color.MakeColor(color.WHITE,color.WHITE)
+	vidMem[y][x].Color ^= color.MakeColor(color.WHITE,color.WHITE)
 /*
 	pos:= uint16(y)*80 + uint16(x)
 	asm.OutportB(ioPort, 0x0F)
@@ -139,7 +134,7 @@ func updateCursor(){
 func Clear() {
 	for i := 0; i < 80; i++ {
 		for j := 0; j < 25; j++ {
-			vidPtr()[j][i] = VidEntry{Char: 0, Color: termColor}
+			vidMem[j][i] = VidEntry{Char: 0, Color: termColor}
 		}
 	}
 	x = 0
@@ -148,45 +143,10 @@ func Clear() {
 }
 
 func MoveCursor(dx, dy int){
-	vidPtr()[y][x].Color = termColor
+	vidMem[y][x].Color = termColor
 	x += dx
 	y += dy
 	updateCursor()
-}
-
-func CopyStr(array *[40]byte, str string) {
-	if len(str) > 40{
-		Error(ErrorMsg[0], len(str), true)
-	}
-	for i := 0; i < len(str); i++ {
-		array[i] = str[i]
-	}
-}
-
-var ErrorMsg [13][40]byte
-
-func initErrs(){
-	CopyStr(&ErrorMsg[0], "Error message too long")
-	CopyStr(&ErrorMsg[1], "Slice Index out of Bounds Exception")
-	CopyStr(&ErrorMsg[2], "Array Index out of Bounds Exception")
-	CopyStr(&ErrorMsg[3], "String Index out of Bounds Exception")
-	CopyStr(&ErrorMsg[4], "Slice Slice out of Bounds Exception")
-	CopyStr(&ErrorMsg[5], "Array Slice out of Bounds Exception")
-	CopyStr(&ErrorMsg[6], "String Slice out of Bounds Exception")
-	CopyStr(&ErrorMsg[7], "Nil Pointer Exception")
-	CopyStr(&ErrorMsg[8], "Make slice out of bounds")
-	CopyStr(&ErrorMsg[9], "Make map out of bounds")
-	CopyStr(&ErrorMsg[10], "Make chan out of bounds")
-	CopyStr(&ErrorMsg[11], "Division By Zero Exception")
-	CopyStr(&ErrorMsg[12], "Unknown Exception")
-	
-}
-
-func ErrCode(code int32){
-	if code > 10{
-		Error(ErrorMsg[12], int(code), true)
-	}
-	Error(ErrorMsg[code+1], int(code), true)
 }
 
 func Error(errorMsg [40]byte, errorCode int, halt bool) {
@@ -206,9 +166,15 @@ func Error(errorMsg [40]byte, errorCode int, halt bool) {
 	}
 }
 
+func errorMsg(err string){
+	Println(err)
+	Println("System Halted.")
+	for {}
+}
+
 func Scroll() {
 	for yVal := 1; yVal < 25; yVal++ {
-		vidPtr()[yVal-1] = vidPtr()[yVal]
+		vidMem[yVal-1] = vidMem[yVal]
 	}
 	y = 24
 }

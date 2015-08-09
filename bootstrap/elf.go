@@ -2,19 +2,25 @@ package elf
 
 import "unsafe"
 
-const programOffset = 0x100000000 - 0xC0000000
+const programOffset = 0xFFFF800000000000 - 0x40000000
 
-type array [1<<30]uint8
+//type array [1<<30]uint8
 
-func IsElf(program *array)bool{
+type slice struct{
+	ptr uintptr
+	length, capacity uintptr
+}
+
+func IsElf(program []uint8)bool{
 	if program[0] != '\x7f' || program[1] != 'E' || program[2] != 'L' || program[3] != 'F' {
 		return false
 	}
 	return program[4] == 2 && program[6] == 1 && (program[7]  == 0 || program[7] == 0xF) && program[18] == 0x3E && program[20] == 1
 }
 
-func Parse(program uintptr)uintptr{
-	ident := (*array)(unsafe.Pointer(program))
+func Parse(program uintptr, size uintptr)uintptr{
+	s := slice{program, size, size}
+	ident := *(*[]uint8)(unsafe.Pointer(&s))
 	if !IsElf(ident){
 		return 0
 	}

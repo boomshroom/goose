@@ -3,7 +3,11 @@ package main
 import (
 	_ "gdt"
 	"video"
+	"elf"
 )
+
+//extern __get_app
+func getAppStart()uintptr
 
 func main(){
 	//gdt.SetupGDT()
@@ -21,4 +25,11 @@ func main(){
 	video.Print("Proof of concept Golang <golang.org> x86 kernel\n")
 	video.Print("by Tom Gascoigne <tom.gascoigne.me>\n")
 	video.Print("and Angelo B\n")
+	video.NL()
+	video.Println("Reading App...")
+	app := elf.Parse(getAppStart())
+	video.Println("Loading App...")
+	app.CopyToMem()
+	video.Println("Launching App!")
+	app.Func()()
 }

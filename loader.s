@@ -12,16 +12,17 @@ global __go_type_hash_identity
 global __go_type_equal_identity
 global __go_type_hash_error
 global __go_type_equal_error
+global __go_register_gc_roots
 global __kill
-global __break
 
 global __enable_paging
-global __kernel_end
+global __get_pages
 global __get_kernel64
+global __get_kernel64_size
 global __enable_64bit
 
-extern kernel_end
 extern _binary_kernel_bin_start
+extern _binary_kernel_bin_size
 
 extern main.main
 extern __go_init_main
@@ -66,6 +67,9 @@ __kill:
 	hlt
 	jmp  __kill
 
+__go_register_gc_roots:
+	ret
+
 ; Go compatibility
 __go_type_hash_identity:
     jmp go.types.HashIdent
@@ -75,7 +79,7 @@ __go_type_equal_identity:
 __enable_paging:
 	push ebp
 	mov ebp, esp
-	
+
 	mov eax, cr4
 	or eax, 0x20
 	mov cr4, eax
@@ -131,14 +135,13 @@ __enable_64bit:
 	push ebp
 	mov ebp, esp
 	
-	mov ebx, [esp+12]
-	
 	;mov edx, [esp+8]
-	
+
 	mov eax, cr0
 	and eax, 01111111111111111111111111111111b
 	mov cr0, eax
 	
+	mov ebx, pages
 	mov cr3, ebx
 	
 	mov ecx, 0xC0000080
@@ -147,27 +150,31 @@ __enable_64bit:
 	wrmsr
 	
 	;mov ebx, [esp+8]
-	
 	mov eax, cr0
 	or eax, 0x80000000
 	mov cr0, eax
 	
 	lgdt [GDT64.Pointer]
-	jmp GDT64.Code:0xC0000000
-    
-__break:
-	xchg bx, bx
-	ret
+
+	mov eax, pages
+	jmp GDT64.Code:0x40000000
 
 __get_kernel64:
 	mov eax, _binary_kernel_bin_start
-	ret 
+	ret
+
+__get_kernel64_size:
+	mov eax, _binary_kernel_bin_size
+	ret
 	
-__kernel_end:
-	mov eax, kernel_end
+__get_pages:
+	mov eax, pages
 	ret
 
 section .bss
 
 align 32
 stack: resb STACKSIZE   ; Reserve 16k for stack
+
+align 4096
+pages: resb 4096 * 5

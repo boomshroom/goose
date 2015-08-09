@@ -1,37 +1,36 @@
 
 global loader
 
-; Go compatibility
-global __go_runtime_error
-global __go_type_hash_identity
-global __go_type_equal_identity
-global __go_type_hash_error
-global __go_type_equal_error
+global __load_gdt
+global __reload_segments
+global __stack_ptr
+global __get_app
+global __get_app_size
+global __kernel_end
+global __go_register_gc_roots
+
 global __go_print_string
 global __go_print_uint64
 global __go_print_bool
 global __go_print_nl
-global __go_memcmp
 
-global __load_gdt
-global __reload_segments
-global __stack_ptr
+global __break
 
 extern go.kernel.Kmain
-extern go.video.ErrCode
+
 extern go.video.Print
 extern go.video.PrintUint
 extern go.video.PrintBool
 extern go.video.NL
-extern go.types.HashIdent
-extern go.types.EqualIdent
-extern go.types.HashError
-extern go.types.EqualError
-extern go.types.MemCmp
 
 extern main.main
 extern __go_init_main
+extern go.page.SetPageLoc
 ;extern go.kernel.Kmain
+
+extern _binary_hello_start
+extern _binary_hello_size
+extern kernel_end
 
 section .entry
 loader:
@@ -45,10 +44,10 @@ STACKPTR equ stack + STACKSIZE
 
 __loader:
 	;mov rsp, STACKPTR
-
+	mov rdi, rax
+	call go.page.SetPageLoc
 	call __go_init_main
 	call main.main
-	
 	;mov ax, 0x1B
 	;mov ds, ax
 	;mov es, ax
@@ -72,20 +71,11 @@ __loader:
 __kill:
 	hlt
 	jmp __kill
-		
-; Go compatibility
-__go_runtime_error:
-    jmp go.video.ErrCode
-__go_type_hash_identity:
-    jmp go.types.HashIdent
-__go_type_equal_identity:
-    jmp go.types.EqualIdent
-__go_type_hash_error:
-    jmp go.types.HashError
-__go_type_equal_error:
-    jmp go.types.EqualError
-__go_memcmp:
-	jmp go.types.MemCmp
+
+__break:
+	xchg bx, bx
+	ret
+
 __go_print_string:
     jmp go.video.Print
 __go_print_uint64:
@@ -119,6 +109,18 @@ __reload_segments:
 
 __stack_ptr:
 	mov rax, STACKPTR
+	ret
+
+__get_app:
+	mov rax, _binary_hello_start
+	ret 
+
+__get_app_size:
+	mov rax, _binary_hello_size
+	ret 
+
+__kernel_end:
+	mov rax, kernel_end
 	ret
 
 section .bss

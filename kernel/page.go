@@ -1,35 +1,65 @@
 package page
 
 import (
-	"ptr"
+	"unsafe"
 )
 
 /*
-// Helper function for finding locations of virtual memory
+// Helper functions for finding locations of virtual memory
 // Copy to playground to determine values
-func indecies(addr uint64)[5]uint64{
+func indecies(addr uint64) [5]uint64 {
 	return [...]uint64{
-		4: addr>>39,
-		3: (addr>>30) & 0x1FF,
-		2: (addr>>21) & 0x1FF,
-		1: (addr>>12) & 0x1FF,
+		4: addr >> 39 & 0x1FF,
+		3: (addr >> 30) & 0x1FF,
+		2: (addr >> 21) & 0x1FF,
+		1: (addr >> 12) & 0x1FF,
 		0: addr & 0x1000,
 	}
 }
+
+func invIndecies(PT, PD, PDP, PML4 uint64) uint64 {
+	return (PT << 12) | (PD << 21) | (PDP << 30) | (PML4 << 39)
+}
 */
 
+func NewPage(address uintptr, size PageSize, props PageEntryPacked){
+	MapAddress(address, 0x400000, size, props)
+}
+
 func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked){
-	ml4Entry := &page(Mapl4)[logical >> 39]
-
-	if !ml4Entry.HasProp(PRESENT){
-
+	ml4Entry := &pml4[(logical >> 39) & 0x1FF]
+	if *ml4Entry & PRESENT == 0{
+		*ml4Entry = PageEntry{Address: nextPhysAddr(), Present: true}.Pack()
 	}
 
-	dptIndex := logical >> 30
-	pdtIndex := logical >> 21
-	tableIndex := logical >> 12
+	dptEntry := &ml4Entry.NextLevel()[(logical >> 30) & 0x1FF]
+	if size == G {
+		*dptEntry = PageEntry{Address: (*Page)(unsafe.Pointer(physical)), Present: true, Large: true}.Pack()
+		dptEntry.SetProp(props, true)
+		return
+	}else if *dptEntry & (PRESENT|LARGE) != PRESENT{
+		*dptEntry = PageEntry{Address: nextPhysAddr(), Present: true}.Pack()
+	}
 
+	pdtEntry := &dptEntry.NextLevel()[(logical >> 21) & 0x1FF]
+	if size == M {
+		*pdtEntry = PageEntry{Address: (*Page)(unsafe.Pointer(physical)), Present: true, Large: true}.Pack()
+		pdtEntry.SetProp(props, true)
+		return
+	}else if *pdtEntry & (PRESENT|LARGE) != PRESENT{
+		*pdtEntry = PageEntry{Address: nextPhysAddr(), Present: true}.Pack()
+	}
 
+	pageEntry := &pdtEntry.NextLevel()[(logical >> 12) & 0x1FF]
+	*pageEntry = PageEntry{Address: (*Page)(unsafe.Pointer(physical)), Present: true}.Pack()
+	pageEntry.SetProp(props, true)
+}
+
+func nextPhysAddr()*Page{
+	l:=len(stack)
+	stack = stack[:l+1]
+	return (*Page)(unsafe.Pointer(pml4.PhysAddr(uintptr(unsafe.Pointer(&stack[l])))))
+	//return (*Page)(unsafe.Pointer(&stack[l]))
 }
 
 type PageEntryPacked uintptr
@@ -39,16 +69,43 @@ type Page [512]PageEntryPacked
 func (p *Page)GetEntry(addr uintptr, level Level)*PageEntryPacked{
 
 	if level < PDT {
-		return 0
+		return nil
 	}
-	entry := p[addr >> 39]
+	entry := &p[addr >> 39]
 	if !entry.HasProp(PRESENT){
-		return 0
+		return nil
 	}else if entry.HasProp(LARGE){
 		return entry
 	}else{
-		return entry.NextLevel(addr << 9, level-1)
+		return entry.NextLevel().GetEntry(addr << 9, level-1)
 	}
+}
+
+func (p *Page)PhysAddr(logical uintptr)uintptr{
+	ml4Entry := &pml4[(logical >> 39) & 0x1FF]
+	if *ml4Entry & PRESENT == 0{
+		return 0
+	}
+
+	dptEntry := &ml4Entry.NextLevel()[(logical >> 30) & 0x1FF]
+	if *dptEntry & PRESENT == 0{
+		return 0
+	}else if *dptEntry & LARGE != 0{
+		return dptEntry.Address() | (logical & (1<<30 - 1))
+	}
+
+	pdtEntry := &dptEntry.NextLevel()[(logical >> 21) & 0x1FF]
+	if *pdtEntry & PRESENT == 0{
+		return 0
+	}else if *pdtEntry & LARGE != 0{
+		return pdtEntry.Address() | (logical & (1<<21 - 1))
+	}
+
+	pageEntry := &pdtEntry.NextLevel()[(logical >> 12) & 0x1FF]
+	if *pageEntry & PRESENT == 0{
+		return 0
+	}
+	return pdtEntry.Address() | (logical & (1<<12 - 1))
 }
 
 type PageSize uint8
@@ -69,7 +126,7 @@ const (
 )
 
 type PageEntry struct{
-	Address uintptr
+	Address *Page
 	Global, Large, Dirty, Accessed, CacheDisable, WriteThrough, User, ReadWrite, Present bool
 }
 
@@ -86,7 +143,7 @@ const(
 )
 
 func (entry PageEntry)Pack()PageEntryPacked{
-	e := PageEntryPacked(entry.Address & 0xFFFFFFFFFFFFF000)
+	e := PageEntryPacked(unsafe.Pointer(entry.Address)) &^ 0xFFF
 	if entry.Global{
 		e |= GLOBAL
 	}
@@ -118,7 +175,7 @@ func (entry PageEntry)Pack()PageEntryPacked{
 }
 
 func (entry PageEntryPacked)Unpack()PageEntry{
-	return PageEntry{Address: uintptr(entry) & 0xFFFFFFFFFFFFF000, 
+	return PageEntry{Address: (*Page)(unsafe.Pointer(entry &^ 0xFFF)), 
 		Global: entry & GLOBAL !=0, 
 		Large: entry & LARGE !=0, 
 		Dirty: entry & DIRTY !=0, 
@@ -131,37 +188,50 @@ func (entry PageEntryPacked)Unpack()PageEntry{
 }
 
 func(entry PageEntryPacked)Address()uintptr{
-	return uintptr(entry) & 0xFFFFFFFFFFFFF000
+	return uintptr(entry) &^ 0xFFF
 }
 
 func(entry PageEntryPacked)HasProp(prop PageEntryPacked)bool{
 	return (entry & prop)!=0
 }
 
+func(entry *PageEntryPacked)SetProp(prop PageEntryPacked, set bool){
+	if set{
+		*entry = *entry | (prop & 0xFFF)
+	}else{
+		*entry = *entry & ^(prop & 0xFFF)
+	}
+}
+
 func(entry PageEntryPacked)NextLevel()*Page{
-	if !entry.HasProp(PRESENT) || entry.HasProp(LARGE){
+	if entry & (PRESENT|LARGE) != PRESENT{
 		return nil
 	}
-	return page(uintptr(entry))
+	e := entry &^ 0xFFF
+	if e >= 0x200000{
+		//breakPoint()
+		return (*Page)(unsafe.Pointer(e + (0xFFFF800000000000 - 0x200000)))
+	}
+	return (*Page)(unsafe.Pointer(e))
+}
+
+func SetPageLoc(page *Page){
+	pml4 = page
 }
 
 var(
-	stackBase uintptr
-	stackLength
+	stack []Page
+	pml4 *Page
 )
-
-func page(p uintptr)*Page{
-	return (*Page)(ptr.GetAddr(p & 0xFFFFFFFFFFFFF000))
-}
 
 //extern __kernel_end
 func kernelEnd()uintptr
 
-//extern __enable_paging
-func enable(uintptr)
-
 func init(){
-	Mapl4 = (kernelEnd() & 0xFFFFF000) + 0x1000
+	stackBegin := (kernelEnd() &^ 0xFFF) + 0x1000
+	stack = (*[1<<30]Page)(unsafe.Pointer(stackBegin))[:0:(0xFFFF800000200000 - stackBegin)>>12]
+	//video.Println("Page initialized")
+	/*Mapl4 = (kernelEnd() & 0xFFFFF000) + 0x1000
 	dirPtrTable = Mapl4 + 0x1000
 	bootstrapPage = Mapl4 + 0x2000
 	kernelPage = Mapl4 + 0x3000
@@ -181,5 +251,5 @@ func init(){
 		page(bootstrapPage)[i] = 0
 	}
 	
-	enable(dirPtrTable)
+	enable(dirPtrTable)*/
 }

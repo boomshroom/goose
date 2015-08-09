@@ -2,6 +2,7 @@ package page
 
 import (
 	"ptr"
+	"unsafe"
 )
 
 type PageEntryPacked uint64
@@ -75,42 +76,44 @@ func(entry PageEntryPacked)Address()uintptr{
 }
 
 var(
-	kernelPage uintptr
-	dirPtrTable uintptr
-	Mapl4 uintptr
-	bootstrapPage uintptr
+	Pages *[5]Page = getPages()
 )
 
 func page(p uintptr)*Page{
 	return (*Page)(ptr.GetAddr(p & 0xFFFFF000))
 }
 
-//extern __kernel_end
-func kernelEnd()uintptr
+//extern __get_pages
+func getPages()*[5]Page
 
 //extern __enable_paging
-func enable(uintptr)
+func enable(*Page)
 
 func init(){
-	Mapl4 = (kernelEnd() & 0xFFFFF000) + 0x1000
-	dirPtrTable = Mapl4 + 0x1000
-	bootstrapPage = Mapl4 + 0x2000
-	kernelPage = Mapl4 + 0x3000
+	mapl4 := &Pages[0]
+	dirPtrTable := &Pages[1]
+	bootstrapPage := &Pages[2]
+	kernelPage := &Pages[3]
+	kernelPtrTableHigh := &Pages[4]
 	
-	page(Mapl4)[0] = PageEntry{Address: uint64(dirPtrTable), ReadWrite: true, Present:true}.Pack()
-	page(dirPtrTable)[0] = PageEntry{Address: uint64(bootstrapPage), Present:true}.Pack()
-	page(kernelPage)[0] = PageEntry{Address: 0x200000, Large: true, ReadWrite: true, Present:true}.Pack()
-	page(dirPtrTable)[3] = PageEntry{Address: uint64(kernelPage), Present:true}.Pack()
-	page(dirPtrTable)[4] = PageEntry{Address: uint64(kernelPage), Present:true}.Pack()
-	page(bootstrapPage)[0] = PageEntry{Address: 0, Large: true, Present:true, ReadWrite:true}.Pack()
+	mapl4[0] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(dirPtrTable))), ReadWrite: true, Present:true}.Pack()
+	mapl4[256] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(kernelPtrTableHigh))), ReadWrite: true, Present:true}.Pack()
+	dirPtrTable[0] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(bootstrapPage))), Present:true}.Pack()
+	dirPtrTable[1] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(kernelPage))), Present:true}.Pack()
+	kernelPage[0] = PageEntry{Address: 0x200000, Large: true, ReadWrite: true, Present:true}.Pack()
+	kernelPtrTableHigh[0] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(kernelPage))), Present:true}.Pack()
+	bootstrapPage[0] = PageEntry{Address: 0, Large: true, Present:true, ReadWrite:true}.Pack()
 	
 	for i:=1; i<512; i++{
-		page(Mapl4)[i] = 0
-		if i!=4 && i !=3{
-			page(dirPtrTable)[i] = 0
+		if i!=256 {
+			mapl4[i] = 0
 		}
-		page(kernelPage)[i]  = 0
-		page(bootstrapPage)[i] = 0
+		if i!=1 {
+			dirPtrTable[i] = 0
+		}
+		kernelPtrTableHigh[i] = 0
+		kernelPage[i]  = 0
+		bootstrapPage[i] = 0
 	}
 	
 	enable(dirPtrTable)

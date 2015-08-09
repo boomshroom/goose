@@ -1,6 +1,6 @@
 ENTRY (loader)
 
-kernel_offset = 0x100000000;
+kernel_offset = 0xFFFF800000000000;
 
 SECTIONS
 {

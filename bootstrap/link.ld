@@ -4,9 +4,11 @@ OUTPUT_FORMAT(elf32-i386)
 SECTIONS
 {
 
+    /* . = 0x00100000; */
+
     .text (0x00100000) : {
-	   *(.text)
-	   *(.rodata*)
+	*(.text)
+	*(.rodata*)
     }
 
     .data ALIGN (0x1000) : {
@@ -20,6 +22,5 @@ SECTIONS
         _ebss = .;
     }
 	
-    /*kernel_end
-    go.page.Mapl4 = ALIGN (0x1000);*/
+    kernel_end = .;
 }

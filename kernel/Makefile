@@ -1,44 +1,49 @@
 ### Build params
 
-CC_CROSS = x86_64-elf-gcc
-LD_CROSS = x86_64-elf-ld
 GO_CROSS =x86_64-elf-gccgo
-OBJCOPY = x86_64-elf-objcopy
-PREPROC = $(CC_CROSS) -E -x c -P
-CC = gcc
-LD = ld
 ASM = nasm -f elf64
-CFLAGS_CROSS = -Werror -nostdlib -fno-builtin -nostartfiles -nodefaultlibs -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2
-GOFLAGS_CROSS = -static  -Werror -nostdlib -nostartfiles -nodefaultlibs -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2
+GOFLAGS_CROSS = -static -Werror -nostdlib -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2
 INCLUDE_DIRS = -Ipkg/.
 
 ### Sources
 
-CORE_SOURCES = pkg/ptr.go.o pkg/ptr.gox pkg/color.go.o pkg/color.gox pkg/video.go.o pkg/video.gox pkg/segment.go.o pkg/segment.gox pkg/gdt.go.o pkg/gdt.gox pkg/types.go.o pkg/types.gox pkg/loader.o pkg/goose.go.o
-
+CORE_SOURCES = pkg/loader.o ../testapp/app.o pkg/segment.o pkg/gdt.o pkg/runtime.o pkg/runtime_asm.o pkg/page.o pkg/color.o pkg/video.o pkg/elf.o pkg/goose.o
+# 
 SOURCE_OBJECTS = $(CORE_SOURCES)
  
 ### Targets
 
-all: kernel.o
+all: kernel.sys
 
 .PHONY: clean
 clean:
-	rm -f $(SOURCE_OBJECTS) $(TEST_EXECS) kernel64.bin kernel64.o
+	rm -f $(SOURCE_OBJECTS) kernel64.bin kernel64.o
 
 ### Rules
 
-pkg/%.o: %.s
-	$(ASM) $(INCLUDE_DIRS) -o $@ $<
+pkg/loader.o: loader.s
+	$(ASM) -o $@ $<
 
-pkg/%.gox: pkg/%.go.o
-	$(OBJCOPY) -j .go_export $< $@
+.PHONY: pkg/runtime.o
+pkg/runtime.o:
+	make -C runtime
 
-pkg/%.go.o: %.go
+.PHONY: pkg/runtime_asm.o
+pkg/runtime_asm.o:
+	make -C runtime ../pkg/runtime_asm.o
+
+pkg/%.o: %.go
 	$(GO_CROSS) $(GOFLAGS_CROSS) $(INCLUDE_DIRS) -o $@ -c $<
 
 kernel.bin: $(SOURCE_OBJECTS)
-	$(GO_CROSS) -nostdlib -T link.ld -z max-page-size=0x1000 -o kernel.bin $(SOURCE_OBJECTS)
+	$(GO_CROSS) $(GOFLAGS_CROSS)  -T link.ld -z max-page-size=0x1000 -o kernel.bin $(SOURCE_OBJECTS) #../testapp/app.o
  
 kernel.o: kernel.bin
-	i686-elf-objcopy -B i386 -I binary -O elf32-i386 kernel.bin kernel.o
+	i386-elf-objcopy -B i386 -I binary -O elf32-i386 kernel.bin kernel.o
+
+kernel.sys: kernel.bin
+	x86_64-elf-objcopy -I elf64-x86-64 -O binary kernel.bin ../kernel.sys
+
+.PHONY: ../testapp/app.o
+../testapp/app.o:
+	make -C ../testapp

@@ -27,14 +27,14 @@ func MakeColor(foreground, background Color) Color {
 	return (background << 4) | (foreground & 15)
 }
 
-func (color Color)Blink() Color {
+func (color Color) Blink() Color {
 	return color | BLINK
 }
 
-func  (color Color)Bright() Color {
+func  (color Color) Bright() Color {
 	return color | BRIGHT
 }
 
-func  (color Color)Dark() Color {
+func  (color Color) Dark() Color {
 	return color & (^BRIGHT & 255)
 }

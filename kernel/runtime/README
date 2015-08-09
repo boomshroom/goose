@@ -1,0 +1,1 @@
+A simplified version of the go runtime for use in the kernel. Provides no garbage collecion, only what's necessary to compile and buildtin functions to make development easier. The struction is meant to mirror the actual package.
