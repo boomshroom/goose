@@ -1,15 +1,14 @@
 section .text
-bits 32
+bits 64
 
 global inportb
 inportb:
-	push ebp
-	mov	ebp, esp
+	push rbp
+	mov	rbp, rsp
 	
 	sub	esp, 4
-	mov eax, 0
-	mov edx, 0
-	mov	dx, word [ebp+8]
+	mov rax, 0
+	mov rdx, rdi
 	in al, dx
 	
 	leave
@@ -17,13 +16,11 @@ inportb:
 
 global outportb
 outportb:
-	push ebp
-	mov	ebp, esp
+	push rbp
+	mov	rbp, rsp
 	
-	mov edx, 0
-	mov eax, 0
-	mov	dx, word [ebp+8]
-	mov	al, byte [ebp+12]
+	mov	rdx, rdi
+	mov rax, rsi
 	out dx, al
 	
 	leave

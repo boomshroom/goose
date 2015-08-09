@@ -2,12 +2,16 @@ package main
 
 import (
 	_ "gdt"
+	_ "idt"
 	"video"
 	"elf"
 )
 
 //extern __get_app
 func getAppStart()uintptr
+
+//extern __start_app
+func startApp(func())
 
 func main(){
 	//gdt.SetupGDT()
@@ -31,5 +35,5 @@ func main(){
 	video.Println("Loading App...")
 	app.CopyToMem()
 	video.Println("Launching App!")
-	app.Func()()
+	startApp(app.Func())
 }

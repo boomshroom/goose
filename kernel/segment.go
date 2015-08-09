@@ -27,7 +27,7 @@ type TablePtr struct{
 	Ptr uintptr
 }
 func (p TablePtr)Pack()(ret TablePtrPacked){
-	ret[0] = uint16(p.Size)
+	ret[0] = uint16(p.Size-1)
 	ret[1] = uint16(p.Ptr)
 	ret[2] = uint16(p.Ptr >> 16)
 	ret[3] = uint16(p.Ptr >> 32)
@@ -46,6 +46,9 @@ func (d CodeDataDesc)Pack()(ret Seg64){
 	}
 	if d.User{
 		ret |= 3 << 45
+		if !d.Code{
+			ret |= 1<<41
+		}
 	}
 	return 
 }
@@ -74,7 +77,7 @@ func (d SystemDesc)Pack()(ret Seg128){
 }
 
 type GateDesc struct{
-	IST uint8
+	//IST uint8
 	Type SegType
 	Offset uintptr
 	Selector uint16
@@ -90,9 +93,9 @@ func (d GateDesc)Pack()(ret Seg128){
 	ret[0] |= uint64(d.Offset) & 0xFFFF
 	ret[0] |= uint64(d.Selector) << 16
 	ret[0] |= (uint64(d.Offset) & 0xFFFF0000) << 32
-	if d.Type == Interupt || d.Type == Trap{
+	/*if d.Type == Interupt || d.Type == Trap{
 		ret[0] |= (uint64(d.IST) & 7) << 32
-	}
+	}*/
 	return 
 }
 
@@ -109,19 +112,24 @@ func (s TSSPacked)Unpack()(ret TSS){
 		ret.RSP[i] = uint64(s[i*2 + 1]) | uint64(s[i*2 + 2]) << 32
 	}
 	for i := 0; i < 7; i++ {
-		ret.RSP[i] = uint64(s[i*2 + 9]) | uint64(s[i*2 + 10]) << 32
+		ret.IST[i] = uint64(s[i*2 + 9]) | uint64(s[i*2 + 10]) << 32
 	}
 	ret.IOMapOffset = uint16(s[26] >> 48)
 	return
 }
 
+func (s *TSSPacked)SetKernelStack(stack uintptr){
+	s[1] = uint32(stack)
+	s[2] = uint32(stack >> 32)
+}
+
 func (s TSS)Pack()(ret TSSPacked){
 	for i := 0; i < 3; i++ {
-		ret[i*2 + 1] = uint32(s.RSP[i])>>32
+		ret[i*2 + 1] = uint32(s.RSP[i]>>32)
 		ret[i*2 + 2] = uint32(s.RSP[i])
 	}
 	for i := 0; i < 7; i++ {
-		ret[i*2 + 9] = uint32(s.IST[i])>>32
+		ret[i*2 + 9] = uint32(s.IST[i]>>32)
 		ret[i*2 + 10] = uint32(s.IST[i])
 	}
 	ret[26] = uint32(s.IOMapOffset) << 16

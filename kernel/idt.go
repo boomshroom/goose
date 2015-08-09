@@ -2,72 +2,87 @@ package idt
 
 import (
 	"asm"
-	"ptr"
-	"regs"
 	"unsafe"
 	"video"
 	"segment"
 )
 
-var IDT uint64
+var IDT = segment.TablePtr{Size: unsafe.Sizeof(table), Ptr: uintptr(unsafe.Pointer(&table))}.Pack()
 
 const size uint16 = 256
 
-var table [size]segment.Seg128
+var table = [size]segment.Seg128{
+	0x0: segment.GateDesc{Offset: funcToPtr(isr0), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1: segment.GateDesc{Offset: funcToPtr(isr1), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x2: segment.GateDesc{Offset: funcToPtr(isr2), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x3: segment.GateDesc{Offset: funcToPtr(isr3), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x4: segment.GateDesc{Offset: funcToPtr(isr4), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x5: segment.GateDesc{Offset: funcToPtr(isr5), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x6: segment.GateDesc{Offset: funcToPtr(isr6), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x7: segment.GateDesc{Offset: funcToPtr(isr7), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x8: segment.GateDesc{Offset: funcToPtr(isr8), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x9: segment.GateDesc{Offset: funcToPtr(isr9), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0xa: segment.GateDesc{Offset: funcToPtr(isr10), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0xb: segment.GateDesc{Offset: funcToPtr(isr11), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0xc: segment.GateDesc{Offset: funcToPtr(isr12), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0xd: segment.GateDesc{Offset: funcToPtr(isr13), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0xe: segment.GateDesc{Offset: funcToPtr(isr14), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0xf: segment.GateDesc{Offset: funcToPtr(isr15), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x10: segment.GateDesc{Offset: funcToPtr(isr16), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x11: segment.GateDesc{Offset: funcToPtr(isr17), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x12: segment.GateDesc{Offset: funcToPtr(isr18), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x13: segment.GateDesc{Offset: funcToPtr(isr19), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x14: segment.GateDesc{Offset: funcToPtr(isr20), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x15: segment.GateDesc{Offset: funcToPtr(isr21), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x16: segment.GateDesc{Offset: funcToPtr(isr22), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x17: segment.GateDesc{Offset: funcToPtr(isr23), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x18: segment.GateDesc{Offset: funcToPtr(isr24), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x19: segment.GateDesc{Offset: funcToPtr(isr25), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1a: segment.GateDesc{Offset: funcToPtr(isr26), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1b: segment.GateDesc{Offset: funcToPtr(isr27), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1c: segment.GateDesc{Offset: funcToPtr(isr28), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1d: segment.GateDesc{Offset: funcToPtr(isr29), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1e: segment.GateDesc{Offset: funcToPtr(isr30), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1f: segment.GateDesc{Offset: funcToPtr(isr31), Selector: 0x08, Type: segment.Interupt}.Pack(),
 
-func SetupIDT() {
-	IDT = uint64((size * 64) - 1)
-	IDT |= (uint64(uintptr(unsafe.Pointer(&table))) & 0xFFFFFFFF) << 16
-	loadTable()
-	loadIDT()
+	//0x20: segment.GateDesc{Offset: funcToPtr(irq0), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x20: segment.Seg128{},
+	0x21: segment.GateDesc{Offset: funcToPtr(irq1), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x22: segment.GateDesc{Offset: funcToPtr(irq2), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x23: segment.GateDesc{Offset: funcToPtr(irq3), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x24: segment.GateDesc{Offset: funcToPtr(irq4), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x25: segment.GateDesc{Offset: funcToPtr(irq5), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x26: segment.GateDesc{Offset: funcToPtr(irq6), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x27: segment.GateDesc{Offset: funcToPtr(irq7), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x28: segment.GateDesc{Offset: funcToPtr(irq8), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x29: segment.GateDesc{Offset: funcToPtr(irq9), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x2a: segment.GateDesc{Offset: funcToPtr(irq10), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x2b: segment.GateDesc{Offset: funcToPtr(irq11), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x2c: segment.GateDesc{Offset: funcToPtr(irq12), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x2d: segment.GateDesc{Offset: funcToPtr(irq13), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x2e: segment.GateDesc{Offset: funcToPtr(irq14), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x2f: segment.GateDesc{Offset: funcToPtr(irq15), Selector: 0x08, Type: segment.Interupt}.Pack(),
 
-	video.CopyStr(&ErrorMsg[0], "Division By Zero Exception")
-	video.CopyStr(&ErrorMsg[1], "Debug Exception")
-	video.CopyStr(&ErrorMsg[2], "Non Maskable Interrupt Exception")
-	video.CopyStr(&ErrorMsg[3], "Breakpoint Exception")
-	video.CopyStr(&ErrorMsg[4], "Into Detected Overflow Exception")
-	video.CopyStr(&ErrorMsg[5], "Out of Bounds Exception")
-	video.CopyStr(&ErrorMsg[6], "Invalid Opcode Exception")
-	video.CopyStr(&ErrorMsg[7], "No Coprocessor Exception")
-	video.CopyStr(&ErrorMsg[8], "Double Fault Exception")
-	video.CopyStr(&ErrorMsg[9], "Coprocessor Segment Overrun Exception")
-	video.CopyStr(&ErrorMsg[10], "Bad TSS Exception")
-	video.CopyStr(&ErrorMsg[11], "Segment Not Present Exception")
-	video.CopyStr(&ErrorMsg[12], "Stack Fault Exception")
-	video.CopyStr(&ErrorMsg[13], "General Protection Fault Exception")
-	video.CopyStr(&ErrorMsg[14], "Page Fault Exception")
-	video.CopyStr(&ErrorMsg[15], "Unknown Interrupt Exception")
-	video.CopyStr(&ErrorMsg[16], "Coprocessor Fault Exception")
-	video.CopyStr(&ErrorMsg[17], "Alignment Check Exception (486+)")
-	video.CopyStr(&ErrorMsg[18], "Machine Check Exception (Pentium/586+)")
-	video.CopyStr(&ErrorMsg[19], "Reserved Exception")
+	0x80: segment.GateDesc{Offset: funcToPtr(syscall), Selector: 0x08, Type: segment.Interupt, User: true}.Pack(),
 }
 
-func SetupIRQ() {
-	remapIRQ()
+// Hack to get the address of a function
+// Borowed from reflect.MakeFunc()
+func funcToPtr(f func()) uintptr {
+	dummy := f
+	return **(**uintptr)(unsafe.Pointer(&dummy))
+}
 
-	table[32] = segment.GateDesc{Offset: ptr.FuncToPtr(irq0), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[33] = segment.GateDesc{Offset: ptr.FuncToPtr(irq1), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[34] = segment.GateDesc{Offset: ptr.FuncToPtr(irq2), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[35] = segment.GateDesc{Offset: ptr.FuncToPtr(irq3), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[36] = segment.GateDesc{Offset: ptr.FuncToPtr(irq4), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[37] = segment.GateDesc{Offset: ptr.FuncToPtr(irq5), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[38] = segment.GateDesc{Offset: ptr.FuncToPtr(irq6), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[39] = segment.GateDesc{Offset: ptr.FuncToPtr(irq7), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[40] = segment.GateDesc{Offset: ptr.FuncToPtr(irq8), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[41] = segment.GateDesc{Offset: ptr.FuncToPtr(irq9), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[42] = segment.GateDesc{Offset: ptr.FuncToPtr(irq10), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[43] = segment.GateDesc{Offset: ptr.FuncToPtr(irq11), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[44] = segment.GateDesc{Offset: ptr.FuncToPtr(irq12), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[45] = segment.GateDesc{Offset: ptr.FuncToPtr(irq13), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[46] = segment.GateDesc{Offset: ptr.FuncToPtr(irq14), Selector: 0x08, Type: segment.Interupt}.Pack()
-	table[47] = segment.GateDesc{Offset: ptr.FuncToPtr(irq15), Selector: 0x08, Type: segment.Interupt}.Pack()
+func init() {
+
+	loadIDT(&IDT)
+	remapIRQ()
 
 	asm.EnableInts()
 }
 
 //extern __load_idt
-func loadIDT()
+func loadIDT(*segment.TablePtrPacked)
 
 func remapIRQ() {
 	master := asm.InportB(0x21)
@@ -90,27 +105,132 @@ func remapIRQ() {
 	asm.IOWait()
 	asm.OutportB(0xA1, 0x01)
 	asm.IOWait()
+
+	//asm.OutportB(0xA1, 0xff)
+	//asm.OutportB(0x21, 0xff)
 	
 	asm.OutportB(0x21, master)
 	asm.OutportB(0xA1, slave)
 }
 
-var ErrorMsg [20][40]byte
+type intsStruct struct{
+	errMsgs [20]string
+	errHandlers [20]func(uint32)
+}
 
-func ISR(r *regs.Regs) {
-
-	if r.IntNo < 32 {
-		
-		if r.IntNo > 18 {
-			video.Error(ErrorMsg[19], int(r.IntNo), true)
-		} else {
-			if r.ErrCode != 0{
-				video.Print("Error Code: ")
-				video.PrintHex(uint64(r.ErrCode), false, true,true, 8)
+var Interrupts = intsStruct{
+	errMsgs: [20]string{
+		"Division By Zero Exception",
+		"Debug Exception",
+		"Non Maskable Interrupt Exception",
+		"Breakpoint Exception",
+		"Into Detected Overflow Exception",
+		"Out of Bounds Exception",
+		"Invalid Opcode Exception",
+		"No Coprocessor Exception",
+		"Double Fault Exception",
+		"Coprocessor Segment Overrun Exception",
+		"Bad TSS Exception",
+		"Segment Not Present Exception",
+		"Stack Fault Exception",
+		"General Protection Fault Exception",
+		"Page Fault Exception",
+		"Unknown Interrupt Exception",
+		"Floating-Point Math Exception",
+		"Alignment Check Exception (486+)",
+		"Machine Check Exception (Pentium/586+)",
+		"Reserved Exception",
+	},
+	errHandlers: [20]func(uint32) {
+		0xD: func(errCode uint32){
+			index := (errCode>>3)&(1<<13 -1)
+			switch (errCode>>1)&3{
+			case 0:
+				video.Print("GDT ")
+				switch index{
+				case 0:
+					video.Println("Null Descriptor")
+				case 1:
+					video.Println("Kernel Code Descriptor")
+				case 2:
+					video.Println("Kernel Data Descriptor")
+				case 3:
+					video.Println("User Code Descriptor")
+				case 4:
+					video.Println("User Data Descriptor")
+				default:
+					video.Print("Descriptor: ")
+					video.PrintUint(uint64(index))
+					video.NL()
+				}
+			case 1, 3:
+				video.Print("IDT Descriptor: ")
+				video.PrintUint(uint64(index))
+				video.NL()
+			case 2:
+				video.Println("LDT Descriptor: ")
+				video.PrintUint(uint64(index))
+				video.NL()
 			}
-			video.Error(ErrorMsg[r.IntNo], int(r.IntNo), true)
+			if errCode & 1 != 0 {
+				video.Println("External Source")
+			}
+		},
+		0xE: func(errCode uint32){
+			if errCode&1 == 0{
+				video.Println("Page not present")
+			}else{
+				video.Println("Page protection violation")
+			}
+			if errCode&2 != 0{
+				video.Println("Atempted page write")
+			}
+			if errCode&4 != 0{
+				video.Println("Userspace active")
+			}
+			if errCode&8 != 0{
+				video.Println("Read 1 in reserved field")
+			}
+			if errCode&16 != 0{
+				video.Println("Atempted instruction fetch")
+			}
+		},
+	},
+}
+
+
+func ISR(intNo, errCode, rip uint64) {
+
+	if intNo < 32 {
+		
+		if intNo > 18 {
+			video.Error(Interrupts.errMsgs[19], int(intNo), false)
+		} else {
+			video.Error(Interrupts.errMsgs[intNo], int(intNo), false)
 		}
 	}
+
+	video.Print("Interrupt occured at ")
+	video.PrintUint(rip)
+	video.NL()
+	if Interrupts.errHandlers[intNo] != nil{
+		Interrupts.errHandlers[intNo](uint32(errCode))
+	}
+	if errCode != 0 {
+		video.Print("Error code: ")
+		video.PrintUint(errCode)
+	}
+	for{}
+}
+
+func Syscall(str string, id uint){
+	switch id{
+	case 0:
+		video.Print(str)
+	case 1:
+		video.NL()
+	}
+	
 }
 
 var IrqRoutines [16]uintptr
@@ -123,67 +243,32 @@ func RemoveIRQ(index uint8) {
 	IrqRoutines[index] = 0
 }
 
-func IRQ(r *regs.Regs) {
-	if r.IntNo == 7{
+func IRQ(intNo, errCode, rip uint) {
+	video.Print("Interrupt Request Query: ")
+	video.PrintUint(uint64(intNo))
+	video.NL()
+	video.Print("At: ")
+	video.PrintUint(uint64(rip))
+	video.NL()
+	if intNo == 7{
 		asm.OutportB(0x20, 0x0B)
 		irr := asm.InportB(0x20)
 		if irr & 0x80 == 0 {
 			return
 		}
 	}
-	var handler uintptr = IrqRoutines[r.IntNo-32]
-	if handler != 0 {
-		call(handler, r)
+	handler := &IrqRoutines[intNo-32]
+	if *handler != 0 {
+		(*(*func())(unsafe.Pointer(handler)))()
 	}
-	if r.IntNo >= 40 {
+	if intNo >= 40 {
 		asm.OutportB(0xA0, 0x20)
 	}
 	asm.OutportB(0x20, 0x20)
 }
 
-//extern __call
-func call(ptr uintptr, r *regs.Regs)
-
-//extern __arbitrary_convert
-func PtrToFunc(ptr uintptr) func(r *regs.Regs) //Y U no allow (func())(unsafe.Pointer) ?
-
 //extern go.pit.Handler
-func pitHandler(r *regs.Regs)
-
-func loadTable() {
-	table[0] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr0)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[1] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr1)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[2] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr2)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[3] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr3)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[4] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr4)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[5] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr5)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[6] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr6)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[7] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr7)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[8] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr8)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[9] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr9)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[10] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr10)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[11] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr11)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[12] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr12)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[13] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr13)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[14] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr14)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[15] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr15)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[16] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr16)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[17] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr17)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[18] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr18)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[19] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr19)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[20] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr20)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[21] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr21)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[22] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr22)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[23] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr23)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[24] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr24)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[25] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr25)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[26] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr26)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[27] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr27)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[28] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr28)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[29] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr29)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[30] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr30)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-	table[31] = IDTDesc{Offset: uint32(ptr.FuncToPtr(isr31)), Selector: 0x08, TypeAttr: 0x8E}.Pack()
-}
+func pitHandler(intNo, errCode uint)
 
 //extern __isr0
 func isr0()
@@ -328,3 +413,6 @@ func irq14()
 
 //extern __irq15
 func irq15()
+
+//extern __syscall
+func syscall()

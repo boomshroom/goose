@@ -2,12 +2,13 @@
 global loader
 
 global __load_gdt
+global __load_idt
 global __reload_segments
 global __stack_ptr
 global __get_app
 global __get_app_size
 global __kernel_end
-global __go_register_gc_roots
+global __start_app
 
 global __go_print_string
 global __go_print_uint64
@@ -26,6 +27,9 @@ extern go.video.NL
 extern main.main
 extern __go_init_main
 extern go.page.SetPageLoc
+extern go.gdt.SetKernelStack
+
+extern go.idt.IDT
 ;extern go.kernel.Kmain
 
 extern _binary_hello_start
@@ -89,11 +93,13 @@ __load_gdt:
 	cli
 	;add eax,  KERNEL_VIRTUAL_BASE
 	lgdt [rdi]
-	;mov ax, 0x20
-	;.kill:
-		;hlt
-		;jmp .kill
-	;ltr ax
+
+	mov ax, 0x28
+	ltr ax
+	ret
+
+__load_idt:
+	lidt [rdi]
 	ret
     
 __reload_segments:
@@ -106,6 +112,31 @@ __reload_segments:
 		mov gs, ax
 		mov ss, ax
 	ret
+
+__start_app:
+	xchg bx,bx
+	mov rbx, [rdi]
+
+	mov ax, 0x23
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+
+	mov rdi, rsp
+	call go.gdt.SetKernelStack
+
+	cli
+	mov rax, rsp
+	push 0x23
+	push rax
+	pushf
+	push 0x1B
+	push rbx
+
+	xchg bx,bx
+
+	iretq
 
 __stack_ptr:
 	mov rax, STACKPTR

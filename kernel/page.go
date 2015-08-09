@@ -22,14 +22,18 @@ func invIndecies(PT, PD, PDP, PML4 uint64) uint64 {
 }
 */
 
+var nextPage uintptr = 0x400000
+
 func NewPage(address uintptr, size PageSize, props PageEntryPacked){
-	MapAddress(address, 0x400000, size, props)
+	MapAddress(address, nextPage, size, props)
+	nextPage += 0x1000
 }
 
 func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked){
 	ml4Entry := &pml4[(logical >> 39) & 0x1FF]
 	if *ml4Entry & PRESENT == 0{
 		*ml4Entry = PageEntry{Address: nextPhysAddr(), Present: true}.Pack()
+		ml4Entry.SetProp(props, true)
 	}
 
 	dptEntry := &ml4Entry.NextLevel()[(logical >> 30) & 0x1FF]
@@ -48,6 +52,17 @@ func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked)
 		return
 	}else if *pdtEntry & (PRESENT|LARGE) != PRESENT{
 		*pdtEntry = PageEntry{Address: nextPhysAddr(), Present: true}.Pack()
+	}
+
+	if props & USER != 0{
+		ml4Entry.SetProp(USER, true)
+		dptEntry.SetProp(USER, true)
+		pdtEntry.SetProp(USER, true)
+		if props & READ_WRITE != 0{
+			ml4Entry.SetProp(READ_WRITE, true)
+			dptEntry.SetProp(READ_WRITE, true)
+			pdtEntry.SetProp(READ_WRITE, true)
+		}
 	}
 
 	pageEntry := &pdtEntry.NextLevel()[(logical >> 12) & 0x1FF]
@@ -230,26 +245,4 @@ func kernelEnd()uintptr
 func init(){
 	stackBegin := (kernelEnd() &^ 0xFFF) + 0x1000
 	stack = (*[1<<30]Page)(unsafe.Pointer(stackBegin))[:0:(0xFFFF800000200000 - stackBegin)>>12]
-	//video.Println("Page initialized")
-	/*Mapl4 = (kernelEnd() & 0xFFFFF000) + 0x1000
-	dirPtrTable = Mapl4 + 0x1000
-	bootstrapPage = Mapl4 + 0x2000
-	kernelPage = Mapl4 + 0x3000
-	
-	page(Mapl4)[0] = PageEntry{Address: uint64(dirPtrTable), ReadWrite: true, Present:true}.Pack()
-	page(dirPtrTable)[0] = PageEntry{Address: uint64(bootstrapPage), ReadWrite: true, Present:true}.Pack()
-	page(dirPtrTable)[3] = PageEntry{Address: uint64(kernelPage), ReadWrite: true, Present:true}.Pack()
-	page(kernelPage)[0] = PageEntry{Address: 0x200000, Large: true, ReadWrite: true, Present:true}.Pack()
-	page(bootstrapPage)[0] = PageEntry{Address: 0, Large: true, Present:true, ReadWrite:true}.Pack()
-	
-	for i:=1; i<512; i++{
-		page(Mapl4)[i] = 0
-		if i!=3{
-			page(dirPtrTable)[i]  = 0
-		}
-		page(kernelPage)[i]  = 0
-		page(bootstrapPage)[i] = 0
-	}
-	
-	enable(dirPtrTable)*/
 }

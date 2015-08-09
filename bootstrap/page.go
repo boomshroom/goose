@@ -96,13 +96,13 @@ func init(){
 	kernelPage := &Pages[3]
 	kernelPtrTableHigh := &Pages[4]
 	
-	mapl4[0] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(dirPtrTable))), ReadWrite: true, Present:true}.Pack()
-	mapl4[256] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(kernelPtrTableHigh))), ReadWrite: true, Present:true}.Pack()
+	mapl4[0] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(dirPtrTable))), Present:true}.Pack()
+	mapl4[256] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(kernelPtrTableHigh))), Present:true}.Pack()
 	dirPtrTable[0] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(bootstrapPage))), Present:true}.Pack()
 	dirPtrTable[1] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(kernelPage))), Present:true}.Pack()
 	kernelPage[0] = PageEntry{Address: 0x200000, Large: true, ReadWrite: true, Present:true}.Pack()
 	kernelPtrTableHigh[0] = PageEntry{Address: uint64(uintptr(unsafe.Pointer(kernelPage))), Present:true}.Pack()
-	bootstrapPage[0] = PageEntry{Address: 0, Large: true, Present:true, ReadWrite:true}.Pack()
+	bootstrapPage[0] = PageEntry{Address: 0, Large: true, Present:true}.Pack()
 	
 	for i:=1; i<512; i++{
 		if i!=256 {

@@ -7,7 +7,7 @@ INCLUDE_DIRS = -Ipkg/.
 
 ### Sources
 
-CORE_SOURCES = pkg/loader.o ../testapp/app.o pkg/segment.o pkg/gdt.o pkg/runtime.o pkg/runtime_asm.o pkg/page.o pkg/color.o pkg/video.o pkg/elf.o pkg/goose.o
+CORE_SOURCES = pkg/loader.s.o pkg/interupts.s.o pkg/asm.s.o ../testapp/app.o pkg/asm.o pkg/segment.o pkg/gdt.o pkg/runtime.o pkg/runtime_asm.o pkg/page.o pkg/color.o pkg/video.o pkg/idt.o pkg/elf.o pkg/goose.o
 # 
 SOURCE_OBJECTS = $(CORE_SOURCES)
  
@@ -21,7 +21,7 @@ clean:
 
 ### Rules
 
-pkg/loader.o: loader.s
+pkg/%.s.o: %.s
 	$(ASM) -o $@ $<
 
 .PHONY: pkg/runtime.o

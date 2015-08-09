@@ -149,16 +149,13 @@ func MoveCursor(dx, dy int){
 	updateCursor()
 }
 
-func Error(errorMsg [40]byte, errorCode int, halt bool) {
+func Error(errorMsg string, errorCode int, halt bool) {
 	Print("ERROR: ")
 	if errorCode != -1 {
 		PrintHex(uint64(errorCode), false, true, false, 2)
 		PutChar(' ')
 	}
-	for i := 0; i < 40; i++ {
-		PutChar(rune(errorMsg[i]))
-	}
-	NL()
+	Println(errorMsg)
 	if halt {
 		Println("System Halted.")
 		for {

@@ -1,5 +1,6 @@
 efi
 testapp/temp
+testapp/hello
 *.ini
 *.iso
 *.o

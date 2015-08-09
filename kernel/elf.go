@@ -74,9 +74,9 @@ func (p *ProgramHeader)CopyToMem(parent *Program){
 	if p.Type == 1 {
 			pageProps := page.PRESENT | page.USER
 
-			if p.Flags & 2 != 0{
+			//if p.Flags & 2 != 0{
 				pageProps |= page.READ_WRITE
-			}
+			//}
 			for i:=uintptr(0); i < (p.Memsz + 0x1000) &^ 0xFFF; i+=0x1000{
 				page.NewPage(uintptr(unsafe.Pointer(p.Vaddr))+i, page.K, pageProps)
 			}
