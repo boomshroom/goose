@@ -7,13 +7,13 @@ INCLUDE_DIRS = -Ipkg/.
 
 ### Sources
 
-CORE_SOURCES = pkg/loader.s.o pkg/interupts.s.o pkg/asm.s.o ../testapp/app.o pkg/asm.o pkg/segment.o pkg/gdt.o pkg/runtime.o pkg/runtime_asm.o pkg/page.o pkg/color.o pkg/video.o pkg/idt.o pkg/elf.o pkg/goose.o
+CORE_SOURCES = pkg/loader.s.o pkg/interupts.s.o pkg/asm.s.o pkg/asm.o pkg/segment.o pkg/proc.o pkg/gdt.o pkg/runtime.o pkg/runtime_asm.o pkg/page.o pkg/color.o pkg/video.o pkg/tables.o pkg/idt.o pkg/elf.o pkg/goose.o
 # 
 SOURCE_OBJECTS = $(CORE_SOURCES)
  
 ### Targets
 
-all: kernel.sys
+all: kernel.bin
 
 .PHONY: clean
 clean:
@@ -36,13 +36,10 @@ pkg/%.o: %.go
 	$(GO_CROSS) $(GOFLAGS_CROSS) $(INCLUDE_DIRS) -o $@ -c $<
 
 kernel.bin: $(SOURCE_OBJECTS)
-	$(GO_CROSS) $(GOFLAGS_CROSS)  -T link.ld -z max-page-size=0x1000 -o kernel.bin $(SOURCE_OBJECTS) #../testapp/app.o
+	$(GO_CROSS) $(GOFLAGS_CROSS)  -T link.ld -z max-page-size=0x1000 -o kernel.bin $(SOURCE_OBJECTS)
  
 kernel.o: kernel.bin
 	i386-elf-objcopy -B i386 -I binary -O elf32-i386 kernel.bin kernel.o
-
-kernel.sys: kernel.bin
-	x86_64-elf-objcopy -I elf64-x86-64 -O binary kernel.bin ../kernel.sys
 
 .PHONY: ../testapp/app.o
 ../testapp/app.o:

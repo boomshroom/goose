@@ -32,8 +32,6 @@ extern go.runtime.UnsafePointerDesc
 ; Printing builtin functions are in loader.s and direct straight to video.go
 
 __go_runtime_error:
-    ;xchg bx,bx
-    ;ret
     jmp go.runtime.RuntimeError
 __go_type_hash_identity:
     jmp go.runtime.TypeHashIdentity
@@ -55,7 +53,6 @@ __go_copy:
     jmp go.runtime.Copy
 runtime.stringiter2:
 	jmp go.runtime.StringIter2
-
 
 __go_register_gc_roots:
 	ret

@@ -2,11 +2,11 @@ package elf
 
 import (
 	"unsafe"
-	//"runtime"
+	"runtime"
 	"page"
 )
 
-type Array [1<<30]uint8
+var KernelElf *Program
 
 type Program struct{
 	Header
@@ -18,6 +18,7 @@ func (p *Program)Func()func(){
 }
 
 func (p *Program)CopyToMem(){
+	page.NewPage(0x7FFFFFFFF000, page.K, page.PRESENT | page.USER | page.READ_WRITE)
 	headers := (*[1<<30]ProgramHeader)(unsafe.Pointer(p.Phoff + uintptr(unsafe.Pointer(p))))
 	for i:=uint16(0); i<p.Phnum; i++ {
 	//for _, progHeader := range p.ProgHeaders(){
@@ -41,6 +42,8 @@ func (h *Header)ProgHeaders()[]ProgramHeader{
 	return (*[1<<30]ProgramHeader)(unsafe.Pointer(h.Phoff + uintptr(unsafe.Pointer(h))))[:h.Phnum:h.Phnum]
 }
 
+//func (h *Header)SectHeaders()
+
 type Ident struct{
 	Magic uint32
 	Class uint8
@@ -55,7 +58,7 @@ type ProgramHeader struct{
 	Type uint32
 	Flags uint32
 	Offset uintptr
-	Vaddr *Array
+	Vaddr *runtime.Array
 	Paddr uintptr
 	Filesz uintptr
 	Memsz uintptr
@@ -66,24 +69,20 @@ func (p *ProgramHeader)Prog(parent *Program)[]uint8{
 	return (*[1<<30]uint8)(unsafe.Pointer(p.Offset + uintptr(unsafe.Pointer(parent))))[:p.Filesz:p.Filesz]
 }
 
-//extern __break
-func breakPoint()
-
 func (p *ProgramHeader)CopyToMem(parent *Program){
-	//breakPoint()
 	if p.Type == 1 {
 			pageProps := page.PRESENT | page.USER
 
-			//if p.Flags & 2 != 0{
+			if p.Flags & 2 != 0{
 				pageProps |= page.READ_WRITE
-			//}
+			}
 			for i:=uintptr(0); i < (p.Memsz + 0x1000) &^ 0xFFF; i+=0x1000{
 				page.NewPage(uintptr(unsafe.Pointer(p.Vaddr))+i, page.K, pageProps)
 			}
+
 			loc := p.Vaddr[:p.Memsz:p.Memsz]
-			//breakPoint()
+
 			copy(loc[:p.Filesz], p.Prog(parent))
-			//breakPoint()
 			zero(loc[p.Filesz:], p.Memsz-p.Filesz)
 		}
 }
@@ -95,7 +94,7 @@ func (program *Program)IsElf()bool{
 	return program.Class == 2 && program.Data == 1 && program.Ident.Version == 1 && (program.ABI  == 0 || program.ABI == 0xF) && program.Machine == 0x3E && program.Version == 1
 }
 
-func Parse(program uintptr)(prog *Program){
+func Parse(program *uint8)(prog *Program){
 	prog = (*Program)(unsafe.Pointer(program))
 	if !prog.IsElf(){
 		return nil
@@ -103,12 +102,8 @@ func Parse(program uintptr)(prog *Program){
 	return
 }
 
-func Copy(src, dest *Array, count int)*Array{
-	for i := 0; i<count; i++{
-		dest[i] = src[i]
-	}
-	return dest
-}
+//extern __break
+func breakPoint()
 
 func zero(addr []uint8, size uintptr){
 	byteNum := uintptr(0)

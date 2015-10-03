@@ -5,15 +5,20 @@ import (
 	_ "idt"
 	"video"
 	"elf"
+	"tables"
+	//"unsafe"
 )
-
-//extern __get_app
-func getAppStart()uintptr
 
 //extern __start_app
 func startApp(func())
 
+//extern __break
+func breakPoint()
+
+var mods []tables.Mod
+
 func main(){
+	mods = tables.MultibootTable.Mods()
 	//gdt.SetupGDT()
 	//pit.Init()
 	//kbd.Init()
@@ -29,11 +34,23 @@ func main(){
 	video.Print("Proof of concept Golang <golang.org> x86 kernel\n")
 	video.Print("by Tom Gascoigne <tom.gascoigne.me>\n")
 	video.Print("and Angelo B\n")
-	video.NL()
-	video.Println("Reading App...")
-	app := elf.Parse(getAppStart())
-	video.Println("Loading App...")
-	app.CopyToMem()
-	video.Println("Launching App!")
-	startApp(app.Func())
+
+	if tables.MultibootTable.Flags & tables.Mods == 0 {
+		video.Println("Mods dissabled")
+	}else{
+		if len(mods)==0{
+			video.Print("No ")
+		}
+		video.Println("Modules loaded")
+		for i:=0; i<len(mods); i++{
+			video.Println(mods[i].Name())
+
+			video.Println("Reading App...")
+			app := elf.Parse(&mods[i].Bytes()[0])
+			video.Println("Loading App...")
+			app.CopyToMem()
+			video.Println("Launching App!")
+			startApp(app.Func())
+		}
+	}
 }

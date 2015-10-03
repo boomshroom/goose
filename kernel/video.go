@@ -163,8 +163,12 @@ func Error(errorMsg string, errorCode int, halt bool) {
 	}
 }
 
+//extern __unwind_stack
+func unwindStack()
+
 func errorMsg(err string){
 	Println(err)
+	unwindStack()
 	Println("System Halted.")
 	for {}
 }

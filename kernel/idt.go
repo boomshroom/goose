@@ -5,6 +5,7 @@ import (
 	"unsafe"
 	"video"
 	"segment"
+	"proc"
 )
 
 var IDT = segment.TablePtr{Size: unsafe.Sizeof(table), Ptr: uintptr(unsafe.Pointer(&table))}.Pack()
@@ -45,8 +46,7 @@ var table = [size]segment.Seg128{
 	0x1e: segment.GateDesc{Offset: funcToPtr(isr30), Selector: 0x08, Type: segment.Interupt}.Pack(),
 	0x1f: segment.GateDesc{Offset: funcToPtr(isr31), Selector: 0x08, Type: segment.Interupt}.Pack(),
 
-	//0x20: segment.GateDesc{Offset: funcToPtr(irq0), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x20: segment.Seg128{},
+	0x20: segment.GateDesc{Offset: funcToPtr(irq0), Selector: 0x08, Type: segment.Interupt}.Pack(),
 	0x21: segment.GateDesc{Offset: funcToPtr(irq1), Selector: 0x08, Type: segment.Interupt}.Pack(),
 	0x22: segment.GateDesc{Offset: funcToPtr(irq2), Selector: 0x08, Type: segment.Interupt}.Pack(),
 	0x23: segment.GateDesc{Offset: funcToPtr(irq3), Selector: 0x08, Type: segment.Interupt}.Pack(),
@@ -63,7 +63,7 @@ var table = [size]segment.Seg128{
 	0x2e: segment.GateDesc{Offset: funcToPtr(irq14), Selector: 0x08, Type: segment.Interupt}.Pack(),
 	0x2f: segment.GateDesc{Offset: funcToPtr(irq15), Selector: 0x08, Type: segment.Interupt}.Pack(),
 
-	0x80: segment.GateDesc{Offset: funcToPtr(syscall), Selector: 0x08, Type: segment.Interupt, User: true}.Pack(),
+	//0x80: segment.GateDesc{Offset: funcToPtr(syscall), Selector: 0x08, Type: segment.Interupt, User: true}.Pack(),
 }
 
 // Hack to get the address of a function
@@ -79,6 +79,7 @@ func init() {
 	remapIRQ()
 
 	asm.EnableInts()
+	//AddIRQ(0, Syscall)
 }
 
 //extern __load_idt
@@ -143,37 +144,39 @@ var Interrupts = intsStruct{
 	},
 	errHandlers: [20]func(uint32) {
 		0xD: func(errCode uint32){
-			index := (errCode>>3)&(1<<13 -1)
-			switch (errCode>>1)&3{
-			case 0:
-				video.Print("GDT ")
-				switch index{
+			if errCode != 0{
+				index := (errCode>>3)&(1<<13 -1)
+				switch (errCode>>1)&3{
 				case 0:
-					video.Println("Null Descriptor")
-				case 1:
-					video.Println("Kernel Code Descriptor")
+					video.Print("GDT ")
+					switch index{
+					case 0:
+						video.Println("Null Descriptor")
+					case 1:
+						video.Println("Kernel Code Descriptor")
+					case 2:
+						video.Println("Kernel Data Descriptor")
+					case 3:
+						video.Println("User Code Descriptor")
+					case 4:
+						video.Println("User Data Descriptor")
+					default:
+						video.Print("Descriptor: ")
+						video.PrintUint(uint64(index))
+						video.NL()
+					}
+				case 1, 3:
+					video.Print("IDT Descriptor: ")
+					video.PrintUint(uint64(index))
+					video.NL()
 				case 2:
-					video.Println("Kernel Data Descriptor")
-				case 3:
-					video.Println("User Code Descriptor")
-				case 4:
-					video.Println("User Data Descriptor")
-				default:
-					video.Print("Descriptor: ")
+					video.Print("LDT Descriptor: ")
 					video.PrintUint(uint64(index))
 					video.NL()
 				}
-			case 1, 3:
-				video.Print("IDT Descriptor: ")
-				video.PrintUint(uint64(index))
-				video.NL()
-			case 2:
-				video.Println("LDT Descriptor: ")
-				video.PrintUint(uint64(index))
-				video.NL()
-			}
-			if errCode & 1 != 0 {
-				video.Println("External Source")
+				if errCode & 1 != 0 {
+					video.Println("External Source")
+				}
 			}
 		},
 		0xE: func(errCode uint32){
@@ -223,20 +226,30 @@ func ISR(intNo, errCode, rip uint64) {
 	for{}
 }
 
-func Syscall(str string, id uint){
-	switch id{
-	case 0:
-		video.Print(str)
-	case 1:
-		video.NL()
+func Syscall(){
+	l := proc.Current.SyscallLen
+	if l>40{
+		l = 40
 	}
-	
+	for i:=uint64(0);i<l;i++{
+		switch proc.Current.Syscalls[i].Id{
+		default:
+			video.Print("Invalid syscall: ")
+			video.PrintUint(proc.Current.Syscalls[i].Id)
+			video.NL()
+		case 1:
+			str := *(*string)(proc.Current.Syscalls[i].Args)
+			video.Print(str)
+		}
+	}
+	proc.Current.SyscallLen = 0
 }
 
 var IrqRoutines [16]uintptr
 
-func AddIRQ(index uint8, query uintptr) {
-	IrqRoutines[index] = query
+func AddIRQ(index uint8, query func()) {
+	dummy := **(**uintptr)(unsafe.Pointer(&query))
+	IrqRoutines[index] = dummy
 }
 
 func RemoveIRQ(index uint8) {
@@ -244,12 +257,6 @@ func RemoveIRQ(index uint8) {
 }
 
 func IRQ(intNo, errCode, rip uint) {
-	video.Print("Interrupt Request Query: ")
-	video.PrintUint(uint64(intNo))
-	video.NL()
-	video.Print("At: ")
-	video.PrintUint(uint64(rip))
-	video.NL()
 	if intNo == 7{
 		asm.OutportB(0x20, 0x0B)
 		irr := asm.InportB(0x20)
@@ -266,9 +273,6 @@ func IRQ(intNo, errCode, rip uint) {
 	}
 	asm.OutportB(0x20, 0x20)
 }
-
-//extern go.pit.Handler
-func pitHandler(intNo, errCode uint)
 
 //extern __isr0
 func isr0()

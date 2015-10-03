@@ -1,6 +1,9 @@
 efi
 testapp/temp
 testapp/hello
+temp/malloctest
+gctest
+sysroot
 *.ini
 *.iso
 *.o

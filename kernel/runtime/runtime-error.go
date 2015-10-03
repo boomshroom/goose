@@ -20,5 +20,4 @@ func RuntimeError(code int32){
 	}else{
 		panicString(errorMsgs[code])
 	}
-
 }

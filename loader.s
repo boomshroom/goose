@@ -50,11 +50,19 @@ MultiBootHeader:
 STACKSIZE equ 0x4000  ; Define our stack size at 16k
 
 loader:
-	
-	mov  esp, stack + STACKSIZE ; Setup stack pointer
+	cmp eax, MAGIC + 0x10000000
+	je mb_start
+	mov [multiboot_table], dword 0
+	jmp start
+	mb_start:
+	mov [multiboot_table], ebx
+	start:
+
+	mov esp, stack + STACKSIZE ; Setup stack pointer
 	
 	;push  eax
 	;push  ebx
+	
 	call __go_init_main
 	call main.main
 
@@ -157,6 +165,8 @@ __enable_64bit:
 	lgdt [GDT64.Pointer]
 
 	mov eax, pages
+	mov ebx, [multiboot_table]
+	mov ecx, _binary_kernel_bin_start
 	jmp GDT64.Code:0x40000000
 
 __get_kernel64:
@@ -173,8 +183,7 @@ __get_pages:
 
 section .bss
 
-align 32
-stack: resb STACKSIZE   ; Reserve 16k for stack
-
 align 4096
 pages: resb 4096 * 5
+stack: resb STACKSIZE   ; Reserve 16k for stack
+multiboot_table: resd 1

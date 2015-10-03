@@ -14,6 +14,19 @@ inportb:
 	leave
 	ret
 
+global inport16
+inport16:
+	push rbp
+	mov	rbp, rsp
+	
+	sub	esp, 4
+	mov rax, 0
+	mov rdx, rdi
+	in ax, dx
+	
+	leave
+	ret
+
 global outportb
 outportb:
 	push rbp

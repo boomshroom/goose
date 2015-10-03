@@ -237,7 +237,7 @@ common_isr:
 	pop rsi
 	pop rdx
 	push rdx
-	mov rax, go.idt.ISR
+	mov rax, qword go.idt.ISR
 	call rax       ; A special call, preserves the 'eip' register
 	;pop eax
 	;pop gs
@@ -267,7 +267,6 @@ global __irq15
 
 __irq0:
 	cli
-	iret
 	push byte 0
 	push byte 32
 	jmp common_irq
@@ -363,25 +362,40 @@ __irq15:
 	jmp common_irq
 	
 extern go.idt.IRQ
+extern go.idt.Syscall
 	
 common_irq:
-    ;pusha
-    ;push ds
-    ;push es
-    ;push fs
-    ;push gs
-    ;mov ax, 0x10
-    ;mov ds, ax
-    ;mov es, ax
-    ;mov fs, ax
-    ;mov gs, ax
-    ;mov eax, esp
-    ;push eax
+	push rax
+	mov rax, [rsp+0x20] ; cs
+    test rax, 3
+    jz .skip_store
+
+    swapgs
+
+    mov rax, [rsp+0x30]
+    mov [gs:0x10], rax ; rsp
+    mov rax, [rsp+0x18]
+	mov [gs:0x18], rax ; rip
+	pop rax
+	mov [gs:0x20], rax
+	mov [gs:0x28], rbx
+
+	mov rax, [rsp]
+	cmp rax, 32
+	jne .after_store
+	call go.idt.Syscall
+	jmp .after_store
+
+    .skip_store:
+    pop rax
+
+    .after_store:
 	pop rdi
 	pop rsi
 	pop rdx
 	push rdx
-    mov rax, go.idt.IRQ
+	push rax
+    mov rax, qword go.idt.IRQ
     call rax
     ;pop eax
     ;pop gs
@@ -390,10 +404,21 @@ common_irq:
     ;pop ds
     ;popa
     ;add esp, 8
-    iretq
+    ;pop rcx ; rip
+    mov rax, [rsp+0x10] ; cs
+    test rax, 3
+    jz .kernel_ret
 
-global __syscall
-extern go.idt.Syscall
-__syscall:
-	call go.idt.Syscall
-	iretq
+    ;pop rax
+    ;xchg bx,bx
+
+	;mov rax, [gs:0x20]
+	mov rbx, [gs:0x28]
+	
+	swapgs
+
+    mov qword [rsp+0x28], 0x23 ; iret complains where sysret doesn't
+
+    .kernel_ret:
+    pop rax
+    iretq	; pops 5 things at once: CS, RIP, RFLAGS, SS, and RSP!

@@ -23,7 +23,7 @@ func init(){
 
 	Table[5], Table[6] = segment.SystemDesc{Base:uint64(uintptr(unsafe.Pointer(&TSS[0]))), Limit:uint32(unsafe.Sizeof(TSS))-1, Type: segment.TSSAvail}.Pack().Decompose()
 	loadGDT(&gdtr)
-	//reloadSegments()
+	reloadSegments()
 }
 
 func SetKernelStack(stack uintptr){

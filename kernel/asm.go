@@ -3,6 +3,9 @@ package asm
 //extern inportb
 func inportB(uint16) uint8
 
+//extern inport16
+func inport16(uint16) uint16
+
 //extern outportb
 func outportB(uint16, uint8)
 
@@ -22,6 +25,11 @@ func OutportB(port uint16, data uint8) {
 func InportB(port uint16) uint8 {
 	return inportB(port)
 }
+
+func Inport16(port uint16) uint16 {
+	return inport16(port)
+}
+
 
 func EnableInts() {
 	enableInts()

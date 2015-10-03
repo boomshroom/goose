@@ -7,6 +7,19 @@ type String struct{
 	Len int
 }
 
+var goStringTemp String
+
+func GoString(ptr *uint8)string{
+	if ptr == nil{
+		return ""
+	}
+	l := 0
+	first := (*Array)(unsafe.Pointer(ptr))
+	for ; first[l]!=0; l++{}
+	goStringTemp = String{Ptr: first, Len: l}
+	return *(*string)(unsafe.Pointer(&goStringTemp))
+}
+
 func StringsEqual(s1, s2 string)bool{
 	return len(s1) == len(s2) && MemCmp((*String)(unsafe.Pointer(&s1)).Ptr, (*String)(unsafe.Pointer(&s2)).Ptr, len(s1)) == 0
 }

@@ -2,6 +2,7 @@ package page
 
 import (
 	"unsafe"
+	//"tables"
 )
 
 /*
@@ -22,14 +23,20 @@ func invIndecies(PT, PD, PDP, PML4 uint64) uint64 {
 }
 */
 
+
 var nextPage uintptr = 0x400000
 
 func NewPage(address uintptr, size PageSize, props PageEntryPacked){
 	MapAddress(address, nextPage, size, props)
-	nextPage += 0x1000
+	switch size{
+		case G: nextPage = (nextPage &^ 0x40000000-1) + 0x40000000
+		case M: nextPage = (nextPage &^ 0x200000-1) + 0x200000
+		default: nextPage = nextPage &^ 0xFFF + 0x1000
+	}
 }
 
 func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked){
+	
 	ml4Entry := &pml4[(logical >> 39) & 0x1FF]
 	if *ml4Entry & PRESENT == 0{
 		*ml4Entry = PageEntry{Address: nextPhysAddr(), Present: true}.Pack()
@@ -43,6 +50,9 @@ func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked)
 		return
 	}else if *dptEntry & (PRESENT|LARGE) != PRESENT{
 		*dptEntry = PageEntry{Address: nextPhysAddr(), Present: true}.Pack()
+		for i := range dptEntry.NextLevel(){
+			dptEntry.NextLevel()[i] = 0
+		}
 	}
 
 	pdtEntry := &dptEntry.NextLevel()[(logical >> 21) & 0x1FF]
@@ -51,7 +61,8 @@ func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked)
 		pdtEntry.SetProp(props, true)
 		return
 	}else if *pdtEntry & (PRESENT|LARGE) != PRESENT{
-		*pdtEntry = PageEntry{Address: nextPhysAddr(), Present: true}.Pack()
+		addr := nextPhysAddr()
+		*pdtEntry = PageEntry{Address: addr, Present: true}.Pack()
 	}
 
 	if props & USER != 0{
@@ -74,7 +85,6 @@ func nextPhysAddr()*Page{
 	l:=len(stack)
 	stack = stack[:l+1]
 	return (*Page)(unsafe.Pointer(pml4.PhysAddr(uintptr(unsafe.Pointer(&stack[l])))))
-	//return (*Page)(unsafe.Pointer(&stack[l]))
 }
 
 type PageEntryPacked uintptr
@@ -224,7 +234,6 @@ func(entry PageEntryPacked)NextLevel()*Page{
 	}
 	e := entry &^ 0xFFF
 	if e >= 0x200000{
-		//breakPoint()
 		return (*Page)(unsafe.Pointer(e + (0xFFFF800000000000 - 0x200000)))
 	}
 	return (*Page)(unsafe.Pointer(e))
@@ -245,4 +254,9 @@ func kernelEnd()uintptr
 func init(){
 	stackBegin := (kernelEnd() &^ 0xFFF) + 0x1000
 	stack = (*[1<<30]Page)(unsafe.Pointer(stackBegin))[:0:(0xFFFF800000200000 - stackBegin)>>12]
+	//for i := range stack{
+	//	stack[i] = Page{}
+	//}
+	//MapAddress(0xFFFFFFFFFFFFF000, uintptr(unsafe.Pointer(tables.MultibootTable)), K, 0)
+	//tables.MultibootTable = (*tables.MBTable)(unsafe.Pointer(uintptr(0xFFFFFFFFFFFFF000)))
 }

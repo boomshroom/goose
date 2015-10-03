@@ -10,16 +10,14 @@ OBJECTS = hello.o crt0.o
 
 ### Rules
 
-all: app.o
+all: main
 
 clean: 
-	rm -f app.o hello ${OBJECTS}
+	rm -f app.o main ${OBJECTS}
 
-app.o: hello
-	$(OBJCOPY_CROSS) -B i386 -I binary -O elf64-x86-64 hello app.o
-
-hello: ${OBJECTS}
+main: ${OBJECTS}
 	$(GO_CROSS) $(GOFLAGS_CROSS) -z max-page-size=0x1000 -o $@ hello.o crt0.o
+	cp main ../isodir/boot/main
 
 %.o: %.go
 	$(GO_CROSS) $(GOFLAGS_CROSS) -o $@ -c $<
