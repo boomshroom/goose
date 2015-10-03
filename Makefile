@@ -28,8 +28,12 @@ bochs: kernel.iso
 kernel.bin: loader.o bootstrap.a kernel.o
 	$(LD_CROSS) -t link.ld --whole-archive -o isodir/boot/kernel.bin loader.o kernel/kernel.o bootstrap/bootstrap.a 
 
-kernel.iso: kernel.bin
+kernel.iso: kernel.bin apps
 	grub-mkrescue -o kernel.iso isodir
+
+.PHONY: apps
+apps:
+	make -C testapp
 
 loader.o: loader.s
 	$(ASM) -o $@ $<
