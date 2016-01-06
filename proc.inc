@@ -6,6 +6,7 @@ struc proc
 	.rax:			resq	1
 	.rbx:			resq	1
 	.flags:			resq	1
+	.capabilities	resq	1
 	.syscall_len:	resq	1
 	.syscalls:		resq	80
 endstruc

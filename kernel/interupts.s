@@ -269,6 +269,7 @@ __irq0:
 	cli
 	push byte 0
 	push byte 32
+	xchg bx, bx
 	jmp common_irq
 	
 __irq1:
@@ -362,7 +363,7 @@ __irq15:
 	jmp common_irq
 	
 extern go.idt.IRQ
-extern go.idt.Syscall
+extern go.syscall.Syscall
 	
 common_irq:
 	push rax
@@ -383,7 +384,9 @@ common_irq:
 	mov rax, [rsp]
 	cmp rax, 32
 	jne .after_store
-	call go.idt.Syscall
+
+	call go.syscall.Syscall
+
 	jmp .after_store
 
     .skip_store:

@@ -121,7 +121,10 @@ func PutCharRaw(c rune) {
 var check = true
 
 func updateCursor(){
-	//vidPtr()[y][x] = MakeEntry(' ')
+	if y > 24 {
+		Scroll()
+	}
+
 	vidMem[y][x].Color ^= color.MakeColor(color.WHITE,color.WHITE)
 /*
 	pos:= uint16(y)*80 + uint16(x)

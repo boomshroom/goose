@@ -18,6 +18,9 @@ func ioWait()
 //extern memcpy
 func memcpy(dest, src, size uintptr)
 
+//extern halt
+func halt()
+
 func OutportB(port uint16, data uint8) {
 	outportB(port, data)
 }
@@ -30,11 +33,14 @@ func Inport16(port uint16) uint16 {
 	return inport16(port)
 }
 
-
 func EnableInts() {
 	enableInts()
 }
 
-func IOWait(){
+func IOWait() {
 	ioWait()
+}
+
+func Halt() {
+	halt()
 }

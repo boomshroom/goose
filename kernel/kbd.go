@@ -1,41 +1,12 @@
-package main
+package kbd
 
-//extern __scan_char
-func scan(*int)
+import (
+	"asm"
+	"idt"
+	//"video"
+)
 
-//extern __request
-func request(i int)
-
-var i int
-
-func main() {
-	println("Hello from userspace!")
-	scan(&i)
-	prev := 0
-	shift := false
-	for {
-		if i == 0x2a || i == 0x36{
-			i = 0
-			shift = true
-		}else if i == 0xaa || i == 0xb6 {
-			i = 0
-			shift = false
-		}else if i != 0 && i != prev && i < 128 {
-			char := kbdus[i&127]
-
-			prev = i
-			i = 0
-			if shift && char >= 'a' && char <= 'z'{
-				char -= 'a'-'A'
-			}else if shift{
-				char = shifted[char]
-			}
-			print(char)
-		} else if i == 0 && prev != 0 {
-			prev = 0
-		}
-	}
-}
+var Buffer *int
 
 var kbdus [128]uint8 = [128]uint8{
 	0, 27, '1', '2', '3', '4', '5', '6', '7', '8', /* 9 */
@@ -76,26 +47,29 @@ var kbdus [128]uint8 = [128]uint8{
 	0, /* All other keys are undefined */
 }
 
-var shifted [127]uint8 = [127]uint8{
-	'1': '!',
-	'2': '@',
-	'3': '#',
-	'4': '$',
-	'5': '%',
-	'6': '^',
-	'7': '&',
-	'8': '*',
-	'9': '(',
-	'0': ')',
-	'-': '_',
-	'=': '+',
-	'`': '~',
-	'[': '{',
-	']': '}',
-	'\\': '|',
-	';': ':',
-	'\'': '"',
-	',': '<',
-	'.': '>',
-	'/': '?',
+func handler() {
+	scancode := asm.InportB(0x60)
+	if scancode != 0 && Buffer != nil {
+		*Buffer = int(scancode)
+	}
+	/*
+		if scancode&0x80 == 0 {
+			switch scancode {
+			case 0x4B:
+				video.MoveCursor(-1, 0)
+			case 0x48:
+				video.MoveCursor(0, -1)
+			case 0x50:
+				video.MoveCursor(0, 1)
+			case 0x4D:
+				video.MoveCursor(1, 0)
+			default:
+				video.PutChar(rune(kbdus[scancode]))
+			}
+		} else {
+		}*/
+}
+
+func init() {
+	idt.AddIRQ(1, handler)
 }

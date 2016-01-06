@@ -102,9 +102,6 @@ func Parse(program *uint8)(prog *Program){
 	return
 }
 
-//extern __break
-func breakPoint()
-
 func zero(addr []uint8, size uintptr){
 	byteNum := uintptr(0)
 	if size >= 8{

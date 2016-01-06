@@ -31,7 +31,7 @@ extern go.page.SetPageLoc
 extern go.tables.SetTable
 extern go.gdt.SetKernelStack
 extern go.elf.KernelElf
-extern go.idt.Syscall
+extern go.syscall.Syscall
 
 extern go.idt.IDT
 ;extern go.kernel.Kmain
@@ -76,7 +76,7 @@ __go_print_string:
     jmp go.video.Print
 __go_print_uint64:
 __go_print_int64:
-__go_print_pointer
+__go_print_pointer:
     jmp go.video.PrintUint
 __go_print_bool:
     jmp go.video.PrintBool
@@ -196,7 +196,7 @@ __syscall:
 	mov [gs:proc.rbx], rbx
 	mov [gs:proc.flags], r11 ; flags
 	
-	call go.idt.Syscall
+	call go.syscall.Syscall
 
 	mov rcx, [gs:proc.rip] ; rip
 	mov rax, [gs:proc.rax]

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"elf"
 	_ "gdt"
 	_ "idt"
-	"video"
-	"elf"
+	_ "kbd"
+	_ "syscall"
 	"tables"
+	"video"
 	//"unsafe"
 )
 
@@ -17,13 +19,13 @@ func breakPoint()
 
 var mods []tables.Mod
 
-func main(){
+func main() {
 	mods = tables.MultibootTable.Mods()
 	//gdt.SetupGDT()
 	//pit.Init()
 	//kbd.Init()
 	//video.Init()
-	
+
 	video.Print("  ______  _____       _____    _          \n")
 	video.Print(" / _____)/ ___ \\     / ___ \\  | |         \n")
 	video.Print("| /  ___| |   | |___| |   | |  \\ \\   ____ \n")
@@ -35,14 +37,14 @@ func main(){
 	video.Print("by Tom Gascoigne <tom.gascoigne.me>\n")
 	video.Print("and Angelo B\n")
 
-	if tables.MultibootTable.Flags & tables.Mods == 0 {
+	if tables.MultibootTable.Flags&tables.Mods == 0 {
 		video.Println("Mods dissabled")
-	}else{
-		if len(mods)==0{
+	} else {
+		if len(mods) == 0 {
 			video.Print("No ")
 		}
 		video.Println("Modules loaded")
-		for i:=0; i<len(mods); i++{
+		for i := 0; i < len(mods); i++ {
 			video.Println(mods[i].Name())
 
 			video.Println("Reading App...")
@@ -50,6 +52,9 @@ func main(){
 			video.Println("Loading App...")
 			app.CopyToMem()
 			video.Println("Launching App!")
+
+			println(app.Entry)
+
 			startApp(app.Func())
 		}
 	}

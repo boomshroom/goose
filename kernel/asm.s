@@ -50,3 +50,10 @@ global enable_ints
 enable_ints:
 	sti
 	ret
+
+global halt
+halt:
+	sti
+	hlt
+	cli
+	ret
