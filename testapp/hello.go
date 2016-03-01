@@ -4,7 +4,10 @@ package main
 func scan(*int)
 
 //extern __register_interupt
-func register(*struct{i int64; f func()})
+func register(*struct {
+	i int64
+	f func()
+})
 
 //extern __start_proc
 func startApp(*string)
@@ -12,7 +15,10 @@ func startApp(*string)
 //extern __int_ret
 func IntRet()
 
-var syscall = struct{i int64; f func()}{i: 0, f: Int}
+var syscall = struct {
+	i int64
+	f func()
+}{i: 0, f: Int}
 
 var i int
 
@@ -49,7 +55,7 @@ func main() {
 	startApp(&proc)
 }
 
-func Int(){
+func Int() {
 	println("keyboard message recieved!")
 	IntRet()
 }
@@ -94,25 +100,25 @@ var kbdus [128]uint8 = [128]uint8{
 }
 
 var shifted [127]uint8 = [127]uint8{
-	'1': '!',
-	'2': '@',
-	'3': '#',
-	'4': '$',
-	'5': '%',
-	'6': '^',
-	'7': '&',
-	'8': '*',
-	'9': '(',
-	'0': ')',
-	'-': '_',
-	'=': '+',
-	'`': '~',
-	'[': '{',
-	']': '}',
+	'1':  '!',
+	'2':  '@',
+	'3':  '#',
+	'4':  '$',
+	'5':  '%',
+	'6':  '^',
+	'7':  '&',
+	'8':  '*',
+	'9':  '(',
+	'0':  ')',
+	'-':  '_',
+	'=':  '+',
+	'`':  '~',
+	'[':  '{',
+	']':  '}',
 	'\\': '|',
-	';': ':',
+	';':  ':',
 	'\'': '"',
-	',': '<',
-	'.': '>',
-	'/': '?',
+	',':  '<',
+	'.':  '>',
+	'/':  '?',
 }

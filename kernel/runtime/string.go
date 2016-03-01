@@ -2,34 +2,35 @@ package runtime
 
 import "unsafe"
 
-type String struct{
+type String struct {
 	Ptr *Array
 	Len int
 }
 
 var goStringTemp String
 
-func GoString(ptr *uint8)string{
-	if ptr == nil{
+func GoString(ptr *uint8) string {
+	if ptr == nil {
 		return ""
 	}
 	l := 0
 	first := (*Array)(unsafe.Pointer(ptr))
-	for ; first[l]!=0; l++{}
+	for ; first[l] != 0; l++ {
+	}
 	goStringTemp = String{Ptr: first, Len: l}
 	return *(*string)(unsafe.Pointer(&goStringTemp))
 }
 
-func StringsEqual(s1, s2 string)bool{
+func StringsEqual(s1, s2 string) bool {
 	return len(s1) == len(s2) && MemCmp((*String)(unsafe.Pointer(&s1)).Ptr, (*String)(unsafe.Pointer(&s2)).Ptr, len(s1)) == 0
 }
 
-func PtrStringsEqual(ps1, ps2 *string)bool{
+func PtrStringsEqual(ps1, ps2 *string) bool {
 	if ps1 == nil {
 		return ps2 == nil
-	}else if ps2 == nil {
+	} else if ps2 == nil {
 		return false
-	}else{
+	} else {
 		return StringsEqual(*ps1, *ps2)
 	}
 }

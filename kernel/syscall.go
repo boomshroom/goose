@@ -3,14 +3,14 @@ package syscall
 import (
 	"asm"
 	"capability"
+	"elf"
+	"idt"
 	"kbd"
+	"page"
 	"proc"
+	"tables"
 	"unsafe"
 	"video"
-	"idt"
-	"page"
-	"tables"
-	"elf"
 )
 
 type inport struct {
@@ -18,9 +18,9 @@ type inport struct {
 	port uint16
 }
 
-type interupt struct{
+type interupt struct {
 	intNum uint64
-	entry func()
+	entry  func()
 }
 
 const (
@@ -37,9 +37,8 @@ const (
 //extern __start_app
 func startApp(func())
 
-
 var syscalls = [...]func(unsafe.Pointer){
-	invalid: func(p unsafe.Pointer){
+	invalid: func(p unsafe.Pointer) {
 		i := *(*int)(unsafe.Pointer(&p))
 		video.Error("Invalid syscall!", i, true)
 	},
@@ -73,17 +72,17 @@ var syscalls = [...]func(unsafe.Pointer){
 			proc.Procs[proc.CurrentID].Capability = *(*uint)(p)
 		}
 	},
-	RegisterInterupt: func(p unsafe.Pointer){
+	RegisterInterupt: func(p unsafe.Pointer) {
 		intReq := *(*interupt)(p)
-		if intReq.intNum < 15 && idt.IrqRoutines[intReq.intNum+1]==nil {
-			page.NewPage(0x7FFFFFFFE000, page.K, page.PRESENT | page.USER | page.READ_WRITE)
+		if intReq.intNum < 15 && idt.IrqRoutines[intReq.intNum+1] == nil {
+			page.NewPage(0x7FFFFFFFE000, page.K, page.PRESENT|page.USER|page.READ_WRITE)
 			idt.AddIRQ(uint8(intReq.intNum+1), intReq.entry)
 		}
 	},
-	StartProc: func(p unsafe.Pointer){
+	StartProc: func(p unsafe.Pointer) {
 		cmd := *(*string)(p)
-		for i:=0; i<len(tables.Modules); i++{
-			if tables.Modules[i].Name()==cmd {
+		for i := 0; i < len(tables.Modules); i++ {
+			if tables.Modules[i].Name() == cmd {
 				app := elf.Parse(&tables.Modules[i].Bytes()[0])
 				app.CopyToMem()
 				return

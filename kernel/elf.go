@@ -34,7 +34,7 @@ func (p *Program) CopyToMem() {
 		SyscallPage: page.NewPage(0x7FFFFFFFF000, page.K, page.PRESENT|page.USER|page.READ_WRITE),
 		ElfHeader:   unsafe.Pointer(p),
 	}
-	
+
 	headers := (*[1 << 30]ProgramHeader)(unsafe.Pointer(p.Phoff + uintptr(unsafe.Pointer(p))))
 	for i := uint16(0); i < p.Phnum; i++ {
 		headers[i].CopyToMem(p, newID)
@@ -95,10 +95,10 @@ func (p *ProgramHeader) CopyToMem(parent *Program, procID uint64) {
 		}
 		process := &proc.Procs[procID]
 		for i := uintptr(0); i < (p.Memsz+0x1000)&^0xFFF; i += 0x1000 {
-			vAddr := uintptr(unsafe.Pointer(p.Vaddr))+i
+			vAddr := uintptr(unsafe.Pointer(p.Vaddr)) + i
 			process.Pages[process.NumPages] = proc.PageMapping{
 				Physical: page.NewPage(vAddr, page.K, pageProps),
-				Virtual: vAddr,
+				Virtual:  vAddr,
 			}
 			process.NumPages++
 			if process.NumPages > 10 {
@@ -116,19 +116,19 @@ func (p *ProgramHeader) CopyToMem(parent *Program, procID uint64) {
 type SectionType uint32
 
 type SectionHeader struct {
-	Name uint32
-	Type SectionType
-	Flags uint64
-	Addr uint64
-	Offset uintptr
-	Size uintptr
-	Link uint32
-	Info uint32
+	Name      uint32
+	Type      SectionType
+	Flags     uint64
+	Addr      uint64
+	Offset    uintptr
+	Size      uintptr
+	Link      uint32
+	Info      uint32
 	AddrAlign uint64
-	EntSize uint64
+	EntSize   uint64
 }
 
-const(
+const (
 	Null SectionType = iota
 	ProgBits
 	SymTable
@@ -136,25 +136,25 @@ const(
 	// others not nessisary at the moment
 )
 
-func PrintAddress(addr uintptr){
+func PrintAddress(addr uintptr) {
 	video.Print(KernelElf.LookupSymbol(addr))
 	video.PutChar(' ')
 	println(addr)
 }
 
-func (h *Header) SymSect()[]Symbol{
-	for _, sect := range h.SectHeaders(){
+func (h *Header) SymSect() []Symbol {
+	for _, sect := range h.SectHeaders() {
 		if sect.Type == SymTable {
-			return (*[1 << 30]Symbol)(unsafe.Pointer(sect.Offset + uintptr(unsafe.Pointer(h))))[:uint64(sect.Size)/sect.EntSize:uint64(sect.Size)/sect.EntSize]
+			return (*[1 << 30]Symbol)(unsafe.Pointer(sect.Offset + uintptr(unsafe.Pointer(h))))[:uint64(sect.Size)/sect.EntSize : uint64(sect.Size)/sect.EntSize]
 		}
 	}
 	return nil
 }
 
-func (h *Header) LookupSymbol(addr uintptr)string{
+func (h *Header) LookupSymbol(addr uintptr) string {
 	var s *Symbol
 	l := len(h.SymSect())
-	for i:=0; i< l; i++{
+	for i := 0; i < l; i++ {
 		sym := &h.SymSect()[i]
 		if sym.Value > s.Value && sym.Value < addr {
 			s = sym
@@ -164,25 +164,26 @@ func (h *Header) LookupSymbol(addr uintptr)string{
 		return ""
 	}
 
-	for i, sect := range h.SectHeaders(){
+	for i, sect := range h.SectHeaders() {
 		if sect.Type == StrTable && i != int(h.Shstrndx) {
 			strTable := unsafe.Pointer(sect.Offset + uintptr(unsafe.Pointer(h)))
 			strLen := 0
-			for ; (*runtime.Array)(strTable)[strLen+int(s.Name)]!=0; strLen++{}
-			ret := runtime.String{Ptr: (*runtime.Array)(unsafe.Pointer(uintptr(strTable)+uintptr(s.Name))), Len: strLen}
+			for ; (*runtime.Array)(strTable)[strLen+int(s.Name)] != 0; strLen++ {
+			}
+			ret := runtime.String{Ptr: (*runtime.Array)(unsafe.Pointer(uintptr(strTable) + uintptr(s.Name))), Len: strLen}
 			return *(*string)(unsafe.Pointer(&ret))
 		}
 	}
 	return ""
 }
 
-type Symbol struct{
-	Name uint32
-	Info uint8
+type Symbol struct {
+	Name  uint32
+	Info  uint8
 	Other uint8
 	Index uint16
 	Value uintptr
-	Size uint64
+	Size  uint64
 }
 
 func (program *Program) IsElf() bool {
@@ -201,7 +202,7 @@ func Parse(program *uint8) (prog *Program) {
 }
 
 func zero(addr []uint8, size uintptr) {
-	if len(addr)!=int(size) {
+	if len(addr) != int(size) {
 		video.Println("Provided size different than slice len")
 		println(len(addr))
 		println(size)
@@ -209,7 +210,7 @@ func zero(addr []uint8, size uintptr) {
 	byteNum := uintptr(0)
 	if size >= 8 {
 		for ; byteNum <= uintptr(size-8); byteNum += 8 {
-			if byteNum >= uintptr(len(addr)){
+			if byteNum >= uintptr(len(addr)) {
 				println(byteNum)
 				println(len(addr))
 			}

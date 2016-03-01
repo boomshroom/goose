@@ -2,7 +2,7 @@ package runtime
 
 import "unsafe"
 
-type Slice struct{
-	Values unsafe.Pointer
+type Slice struct {
+	Values          unsafe.Pointer
 	Count, Capacity int
 }

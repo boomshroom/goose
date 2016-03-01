@@ -14,10 +14,10 @@ var errorMsgs [11]string = [...]string{
 	"Division By Zero Error",
 }
 
-func RuntimeError(code int32){
-	if code >= int32(len(errorMsgs)){
+func RuntimeError(code int32) {
+	if code >= int32(len(errorMsgs)) {
 		panicString("Unknown Runtime Error")
-	}else{
+	} else {
 		panicString(errorMsgs[code])
 	}
 }
