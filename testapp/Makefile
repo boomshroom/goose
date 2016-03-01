@@ -10,10 +10,12 @@ OBJECTS = hello.o crt0.o
 
 ### Rules
 
-all: main
+all: main proc2
 
+.PHONY: clean
 clean: 
 	rm -f app.o main ${OBJECTS}
+	make -C proc2 clean
 
 main: ${OBJECTS}
 	$(GO_CROSS) $(GOFLAGS_CROSS) -z max-page-size=0x1000 -o $@ hello.o crt0.o
@@ -24,3 +26,7 @@ main: ${OBJECTS}
 
 crt0.o: crt0.s
 	$(ASM) -o $@ $<
+
+.PHONY: proc2
+proc2:
+	make -C proc2

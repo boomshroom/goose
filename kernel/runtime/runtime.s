@@ -5,6 +5,8 @@ global __go_type_hash_error
 global __go_type_equal_error
 global __go_type_hash_string
 global __go_type_equal_string
+global __go_type_hash_interface
+global __go_type_equal_interface
 global __go_memcmp
 global __go_strcmp
 global __go_copy
@@ -22,6 +24,8 @@ extern go.runtime.TypeHashError
 extern go.runtime.TypeEqualError
 extern go.runtime.TypeHashString
 extern go.runtime.TypeEqualString
+extern go.runtime.TypeHashInterface
+extern go.runtime.TypeEqualInterface
 extern go.runtime.MemCmp
 extern go.runtime.StrCmp
 extern go.runtime.Copy
@@ -32,6 +36,7 @@ extern go.runtime.UnsafePointerDesc
 ; Printing builtin functions are in loader.s and direct straight to video.go
 
 __go_runtime_error:
+    xchg bx,bx
     jmp go.runtime.RuntimeError
 __go_type_hash_identity:
     jmp go.runtime.TypeHashIdentity
@@ -45,6 +50,10 @@ __go_type_hash_string:
     jmp go.runtime.TypeHashString
 __go_type_equal_string:
     jmp go.runtime.TypeEqualString
+__go_type_hash_interface:
+    jmp go.runtime.TypeHashInterface
+__go_type_equal_interface:
+    jmp go.runtime.TypeEqualInterface
 __go_memcmp:
 	jmp go.runtime.MemCmp
 __go_strcmp:

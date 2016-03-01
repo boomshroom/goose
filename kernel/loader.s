@@ -8,6 +8,7 @@ global __stack_ptr
 global __kernel_end
 global __start_app
 global __unwind_stack
+global __enter_int
 
 global __go_print_string
 global __go_print_uint64
@@ -23,6 +24,7 @@ extern go.kernel.Kmain
 extern go.video.Print
 extern go.video.PrintUint
 extern go.video.PrintBool
+extern go.elf.PrintAddress
 extern go.video.NL
 
 extern main.main
@@ -32,6 +34,9 @@ extern go.tables.SetTable
 extern go.gdt.SetKernelStack
 extern go.elf.KernelElf
 extern go.syscall.Syscall
+extern go.proc.Procs
+extern go.proc.CurrentID
+extern go.proc.NumProcs
 
 extern go.idt.IDT
 ;extern go.kernel.Kmain
@@ -60,8 +65,6 @@ __loader:
 	mov rdi, rbx
 	call go.tables.SetTable
 
-
-
 	call main.main
 		
 __kill:
@@ -69,7 +72,6 @@ __kill:
 	jmp __kill
 
 __break:
-	xchg bx, bx
 	ret
 
 __go_print_string:
@@ -143,12 +145,6 @@ __load_idt:
 	or eax, 1<<9
 	wrmsr
 
-	mov ecx, 0xC0000102
-	mov rdx, current_proc
-	mov eax, edx
-	shr rdx, 32
-	wrmsr
-
 	ret
     
 __reload_segments:
@@ -172,21 +168,62 @@ __reload_segments:
 	ret
 
 __start_app:
+	mov ecx, 0xC0000102
+	mov rax, go.proc.CurrentID
+	mov qword [rax], 1
+	mov rdx, go.proc.Procs
+	lea rdx, [rdx + proc.size]
+	mov eax, edx
+	shr rdx, 32
+	wrmsr
+
 	mov rcx, [rdi]
 
 	pushf
 	pop r11
-	mov rsp, 0x8
+	mov rsp, 0x7FFFFFFFEFF0
+	mov rbp, rsp
 	; NASM/YASM seem to think that REX.W is a symbol
-
-	mov rax, current_proc
-	mov qword [rax], 1
-	mov qword [rax+proc.syscall_len], 0
 
 	db 0x48
 	sysret
 
-__syscall:
+__enter_int:
+
+	push rbp
+	mov [rel temp_rsp], rsp
+	mov rsp, 0x7FFFFFFFEFF0
+
+	mov ecx, 0xC0000082
+	mov rdx, qword .return
+	mov eax, edx
+	shr rdx, 32
+	wrmsr
+
+	mov rcx, [rdi]
+	pushf
+	pop r11
+
+	; NASM/YASM seem to think that REX.W is a symbol
+	db 0x48
+	sysret
+	.return:
+
+	push r11
+	popf
+
+	mov rsp, qword [rel temp_rsp]
+	pop rbp
+
+	mov ecx, 0xC0000082
+	mov rdx, qword __syscall
+	mov eax, edx
+	shr rdx, 32
+	wrmsr
+
+	ret
+
+__syscall: ; flush syscalls and halt
 	swapgs
 	mov [gs:proc.rsp], rsp
 	mov rsp, qword STACKPTR
@@ -196,15 +233,21 @@ __syscall:
 	mov [gs:proc.rbx], rbx
 	mov [gs:proc.flags], r11 ; flags
 	
-	call go.syscall.Syscall
+	;call go.syscall.Syscall
 
-	mov rcx, [gs:proc.rip] ; rip
-	mov rax, [gs:proc.rax]
-	mov rbx, [gs:proc.rbx]
-	mov r11, [gs:proc.flags] ; flags
-	cli
-	mov rsp, [gs:proc.rsp]
-	swapgs
+	;mov rcx, [gs:proc.rip] ; rip
+	;mov rax, [gs:proc.rax]
+	;mov rbx, [gs:proc.rbx]
+	;mov r11, [gs:proc.flags] ; flags
+	;cli
+	;mov rsp, [gs:proc.rsp]
+	;swapgs
+
+	;sti
+	;xchg bx,bx
+	call go.syscall.Syscall
+	hlt
+	;jmp .kill
 
 	;iretq
 	db 0x48
@@ -235,8 +278,16 @@ __unwind_stack:
     pop rbp ; as though returning from runtimeError()
 
     pop rdi
-    call go.video.PrintUint
-    call go.video.NL
+    call go.elf.PrintAddress
+    ;call go.video.NL
+
+    mov r13, rsp
+    mov rsp, rbp
+    pop rbp ; as though returning from whatever failed()
+
+    pop rdi
+    call go.elf.PrintAddress
+    ;call go.video.NL
 
     mov rsp, r12
     push rbx
@@ -264,3 +315,4 @@ syscall_err_len equ syscall_err_end - syscall_err
 section .bss
 	
 stack: resb STACKSIZE
+temp_rsp: resq 1

@@ -108,6 +108,7 @@ __isr12:
 	
 __isr13:
 	cli
+	xchg bx,bx
 	push byte 13
 	jmp common_isr
 	
@@ -219,33 +220,66 @@ __isr31:
 	jmp common_isr
 	
 extern go.idt.ISR
+extern go.proc.KillProc
+extern go.video.PrintCurrent
 	
 common_isr:
-	;pusha
-	;push ds
-	;push es
-	;push fs
-	;push gs
-	;mov ax, 0x10   ; Load the Kernel Data Segment descriptor!
-	;mov ds, ax
-	;mov es, ax
-	;mov fs, ax
-	;mov gs, ax
-	;mov eax, esp   ; Push us the stack
-	;push eax
+
+	push rax
+	mov rax, [rsp+0x18] ; cs
+    test rax, 3
+
+    jz .kernel_panic
+
+    swapgs
+    mov rax, [gs:proc.id] ; Killing wrong process, something is wrong
+    cmp rax, 1
+    swapgs
+    je .kernel_panic
+
+    mov rdi, -1
+    call go.syscall.Syscall
+
+    mov rax, cr3
+    mov cr3, rax
+
+    swapgs
+
+    mov ecx, 0xC0000101
+	mov rax, go.proc.CurrentID
+	mov rax, [rax]
+	imul rax, proc.size
+	mov rdx, go.proc.Procs
+	lea rdx, [rdx + rax]
+	mov eax, edx
+	shr rdx, 32
+	wrmsr
+
+	add rsp, 0x18
+
+    mov rax, [gs:proc.rsp]
+	mov [rsp+0x18], rax
+	mov rax, [gs:proc.rip]
+ 	mov [rsp+0x00], rax
+
+ 	mov rbx, [gs:proc.rbx]
+ 	mov rax, [gs:proc.rax]
+	
+	swapgs
+
+	mov qword [rsp+0x20], 0x23
+	;xchg bx,bx
+	iretq
+
+.kernel_panic:
+	pop rax
 	pop rdi
 	pop rsi
 	pop rdx
 	push rdx
 	mov rax, qword go.idt.ISR
 	call rax       ; A special call, preserves the 'eip' register
-	;pop eax
-	;pop gs
-	;pop fs
-	;pop es
-	;pop ds
-	;popa
-	;add rsp, 16     ; Cleans up the pushed error code and pushed ISR number
+
 	iretq           ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP!
 
 global __irq0
@@ -266,14 +300,14 @@ global __irq14
 global __irq15
 
 __irq0:
-	cli
+	;cli
 	push byte 0
 	push byte 32
-	xchg bx, bx
 	jmp common_irq
 	
 __irq1:
 	cli
+	;xchg bx,bx
 	push byte 0
 	push byte 33
 	jmp common_irq
@@ -364,6 +398,10 @@ __irq15:
 	
 extern go.idt.IRQ
 extern go.syscall.Syscall
+extern go.proc.CurrentID
+extern go.proc.Procs
+
+%include "../proc.inc"
 	
 common_irq:
 	push rax
@@ -374,22 +412,45 @@ common_irq:
     swapgs
 
     mov rax, [rsp+0x30]
-    mov [gs:0x10], rax ; rsp
+    mov [gs:proc.rsp], rax ; rsp
     mov rax, [rsp+0x18]
-	mov [gs:0x18], rax ; rip
+	mov [gs:proc.rip], rax ; rip
 	pop rax
-	mov [gs:0x20], rax
-	mov [gs:0x28], rbx
+	mov [gs:proc.rax], rax
+	mov [gs:proc.rbx], rbx
+
+	;swapgs
 
 	mov rax, [rsp]
 	cmp rax, 32
 	jne .after_store
 
+	push rdi
+	xor rdi, rdi
 	call go.syscall.Syscall
+	;xchg bx,bx
+	pop rdi
+
+	mov rax, cr3
+	mov cr3, rax
+
+	mov ecx, 0xC0000101
+	mov rax, go.proc.CurrentID
+	mov rax, [rax]
+	imul rax, proc.size
+	mov rdx, go.proc.Procs
+	lea rdx, [rdx + rax]
+	mov eax, edx
+	shr rdx, 32
+	wrmsr
+
+	;xchg bx,bx
+	;swapgs
 
 	jmp .after_store
 
     .skip_store:
+
     pop rax
 
     .after_store:
@@ -398,30 +459,32 @@ common_irq:
 	pop rdx
 	push rdx
 	push rax
+
     mov rax, qword go.idt.IRQ
     call rax
-    ;pop eax
-    ;pop gs
-    ;pop fs
-    ;pop es
-    ;pop ds
-    ;popa
-    ;add esp, 8
-    ;pop rcx ; rip
+
     mov rax, [rsp+0x10] ; cs
     test rax, 3
     jz .kernel_ret
 
-    ;pop rax
     ;xchg bx,bx
 
-	;mov rax, [gs:0x20]
-	mov rbx, [gs:0x28]
+    ;mov rax, [gs:proc.id]
+
+    mov rax, [gs:proc.rsp]
+	mov [rsp+0x20], rax
+	mov rax, [gs:proc.rip]
+ 	mov [rsp+0x08], rax
+
+ 	mov rbx, [gs:proc.rbx]
+ 	mov rax, [gs:proc.rax]
 	
 	swapgs
 
     mov qword [rsp+0x28], 0x23 ; iret complains where sysret doesn't
+    ;or qword [rsp+0x10], 1<<9 ; make sure interrupts  are set
 
     .kernel_ret:
     pop rax
+
     iretq	; pops 5 things at once: CS, RIP, RFLAGS, SS, and RSP!

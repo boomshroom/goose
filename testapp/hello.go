@@ -3,15 +3,26 @@ package main
 //extern __scan_char
 func scan(*int)
 
-//extern __request
-func request(i int)
+//extern __register_interupt
+func register(*struct{i int64; f func()})
+
+//extern __start_proc
+func startApp(*string)
+
+//extern __int_ret
+func IntRet()
+
+var syscall = struct{i int64; f func()}{i: 0, f: Int}
 
 var i int
 
+var proc = "proc2"
+
 func main() {
 	println("Hello from userspace!")
-	scan(&i)
-	prev := 0
+	//scan(&i)
+	//register(&syscall)
+	/*prev := 0
 	shift := false
 	for {
 		if i == 0x2a || i == 0x36{
@@ -34,7 +45,13 @@ func main() {
 		} else if i == 0 && prev != 0 {
 			prev = 0
 		}
-	}
+	}*/
+	startApp(&proc)
+}
+
+func Int(){
+	println("keyboard message recieved!")
+	IntRet()
 }
 
 var kbdus [128]uint8 = [128]uint8{

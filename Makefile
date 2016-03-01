@@ -8,7 +8,7 @@ all: kernel.iso
 
 .PHONY: clean
 clean:
-	rm -f isodir/boot/{kernel.bin,main} kernel.iso loader.o
+	rm -f isodir/boot/{kernel.bin,main,proc2} kernel.iso loader.o
 	make -C kernel clean
 	make -C bootstrap clean
 	make -C testapp clean

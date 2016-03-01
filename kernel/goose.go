@@ -17,10 +17,7 @@ func startApp(func())
 //extern __break
 func breakPoint()
 
-var mods []tables.Mod
-
 func main() {
-	mods = tables.MultibootTable.Mods()
 	//gdt.SetupGDT()
 	//pit.Init()
 	//kbd.Init()
@@ -37,25 +34,30 @@ func main() {
 	video.Print("by Tom Gascoigne <tom.gascoigne.me>\n")
 	video.Print("and Angelo B\n")
 
+	fb := video.GetFrameBuffer()
+	fb.Print("Interfaces ahoy!\n")
+
 	if tables.MultibootTable.Flags&tables.Mods == 0 {
 		video.Println("Mods dissabled")
 	} else {
-		if len(mods) == 0 {
+		if len(tables.Modules) == 0 {
 			video.Print("No ")
 		}
 		video.Println("Modules loaded")
-		for i := 0; i < len(mods); i++ {
-			video.Println(mods[i].Name())
+		for i := 0; i < len(tables.Modules); i++ {
+			video.Println(tables.Modules[i].Name())
+			if tables.Modules[i].Name() == "init" {
 
-			video.Println("Reading App...")
-			app := elf.Parse(&mods[i].Bytes()[0])
-			video.Println("Loading App...")
-			app.CopyToMem()
-			video.Println("Launching App!")
+				video.Println("Reading App...")
+				app := elf.Parse(&tables.Modules[i].Bytes()[0])
+				video.Println("Loading App...")
+				app.CopyToMem()
+				video.Println("Launching App!")
 
-			println(app.Entry)
+				println(app.Entry)
 
-			startApp(app.Func())
+				startApp(app.Func())
+			}
 		}
 	}
 }

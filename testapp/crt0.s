@@ -12,7 +12,7 @@ section .text
 global _start
 _start:
 ; Setup end of stack frame
-	mov rsp, stack + 0xFFF
+	;mov rsp, stack + 0xFFF
 	;push rbp
 	;push rbp
 	mov rbp, rsp
@@ -20,16 +20,20 @@ _start:
 	call __go_init_main
 	call main.main
 
+	.kill: 
+	;syscall
+	jmp .kill
+
 print_string:
 
-	mov rax, current_proc + proc.syscall_len
+	mov rax, current_syscalls + syscalls.syscall_len
 	mov rax, [rax]
 	shl rax, 4
-	mov rdx, current_proc + proc.syscalls
+	mov rdx, current_syscalls + syscalls.syscalls
 	add rax, rdx
 	mov qword [rax], 1
 	mov qword [rax+8], rdi
-	mov rax, current_proc + proc.syscall_len
+	mov rax, current_syscalls + syscalls.syscall_len
 	add qword [rax], 1
 	ret
 
@@ -53,61 +57,87 @@ global __go_print_uint64
 __go_print_int64:
 __go_print_uint64:
 
-	mov rax, current_proc + proc.syscall_len
+	mov rax, current_syscalls + syscalls.syscall_len
 	mov rax, [rax]
 	shl rax, 4
-	mov rdx, current_proc + proc.syscalls
+	mov rdx, current_syscalls + syscalls.syscalls
 	add rax, rdx
 	mov qword [rax], 3
 	mov qword [rax+8], rdi
-	mov rax, current_proc + proc.syscall_len
+	mov rax, current_syscalls + syscalls.syscall_len
 	add qword [rax], 1
 
 	ret
 
 global __scan_char
 __scan_char:
-	mov rax, current_proc + proc.syscall_len
+	mov rax, current_syscalls + syscalls.syscall_len
 	mov rax, [rax]
 	shl rax, 4
-	mov rdx, current_proc + proc.syscalls
+	mov rdx, current_syscalls + syscalls.syscalls
 	add rax, rdx
 	mov qword [rax], 2
 	mov qword [rax+8], rdi
-	mov rax, current_proc + proc.syscall_len
+	mov rax, current_syscalls + syscalls.syscall_len
 	add qword [rax], 1
 
 	ret
 	
 global __request
 __request:
-	mov rax, current_proc + proc.syscall_len
+	mov rax, current_syscalls + syscalls.syscall_len
 	mov rax, [rax]
 	shl rax, 4
-	mov rdx, current_proc + proc.syscalls
+	mov rdx, current_syscalls + syscalls.syscalls
 	add rax, rdx
-	mov qword [rax], 4
+	mov qword [rax], 5
 	mov qword [rax+8], rdi
-	mov rax, current_proc + proc.syscall_len
+	mov rax, current_syscalls + syscalls.syscall_len
 	add qword [rax], 1
 
+	ret
+
 global __register_interupt
-	mov rax, current_proc + proc.syscall_len
+__register_interupt:
+	mov rax, current_syscalls + syscalls.syscall_len
 	mov rax, [rax]
 	shl rax, 4
-	mov rdx, current_proc + proc.syscalls
+	mov rdx, current_syscalls + syscalls.syscalls
 	add rax, rdx
-	mov qword [rax], 4
+	mov qword [rax], 6
 	mov qword [rax+8], rdi
-	mov rax, current_proc + proc.syscall_len
+	mov rax, current_syscalls + syscalls.syscall_len
 	add qword [rax], 1
+
+	ret
+
+global __start_proc
+__start_proc:
+	mov rax, current_syscalls + syscalls.syscall_len
+	mov rax, [rax]
+	shl rax, 4
+	mov rdx, current_syscalls + syscalls.syscalls
+	add rax, rdx
+	mov qword [rax], 7
+	mov qword [rax+8], rdi
+	mov rax, current_syscalls + syscalls.syscall_len
+	add qword [rax], 1
+
+	ret
+
+global __int_ret
+__int_ret:
+	syscall
 
 global __go_runtime_error
 __go_runtime_error:
 	mov rdi, err_str
 	call print_string
-	.kill:
-	jmp .kill
+	mov byte [0], 0
+
+global __go_register_gc_roots
+__go_register_gc_roots:
+	ret
 
 ; Go compatibility
 ;__go_type_hash_identity:

@@ -43,12 +43,11 @@ func (d CodeDataDesc)Pack()(ret Seg64){
 	ret = (1 << 47) | (1 << 44)
 	if d.Code{
 		ret |= (1 << 43) | (1 << 53)
+	}else{
+		ret |= 1<<41
 	}
 	if d.User{
 		ret |= 3 << 45
-		if !d.Code{
-			ret |= 1<<41
-		}
 	}
 	return 
 }

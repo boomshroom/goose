@@ -2,12 +2,12 @@
 
 GO_CROSS =x86_64-elf-gccgo
 ASM = nasm -f elf64
-GOFLAGS_CROSS = -static -Werror -nostdlib -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2
+GOFLAGS_CROSS = -static -Werror -nostdlib -mcmodel=large -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -fno-exceptions
 INCLUDE_DIRS = -Ipkg/.
 
 ### Sources
 
-CORE_SOURCES = pkg/loader.s.o pkg/interupts.s.o pkg/asm.s.o pkg/asm.o pkg/capability.o pkg/segment.o pkg/proc.o pkg/gdt.o pkg/runtime.o pkg/runtime_asm.o pkg/page.o pkg/color.o pkg/video.o pkg/tables.o pkg/idt.o pkg/kbd.o pkg/syscall.o pkg/elf.o pkg/goose.o
+CORE_SOURCES = pkg/loader.s.o pkg/interupts.s.o pkg/asm.s.o pkg/asm.o pkg/capability.o pkg/segment.o pkg/page.o pkg/proc.o pkg/gdt.o pkg/runtime.o pkg/runtime_asm.o pkg/color.o pkg/video.o pkg/tables.o pkg/elf.o pkg/idt.o pkg/kbd.o pkg/syscall.o pkg/goose.o
 # 
 SOURCE_OBJECTS = $(CORE_SOURCES)
  

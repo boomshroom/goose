@@ -5,45 +5,76 @@ import (
 	"segment"
 	"unsafe"
 	"video"
+	"elf"
+	//"proc"
 )
 
 var IDT = segment.TablePtr{Size: unsafe.Sizeof(table), Ptr: uintptr(unsafe.Pointer(&table))}.Pack()
 
 const size uint16 = 256
 
+const (
+	DIV_0 = iota // Divide by 0
+	DEBUG
+	NMI   // Non-maskable Interupt
+	BREAK // Breakpoint
+	OVERFLOW
+	BRE     // Bound Range Exception
+	INV_OP  // Invalid Opcode
+	DNA     // Device not Available
+	DOUBLE  // Double Fault
+	CSO     // Co-processor Overrun --Legacy--
+	INV_TSS // Invalid Task State Segment
+	SNP     // Segment not Present
+	SSF     // Stack Segment Fault
+	GPF     // General Protection Fault
+	PAGE    // Page Fault
+	_
+	X87_FPE  // Floating Point Exception
+	ALIGN    // Allignment Check
+	MACH     // Machine Check
+	SIMD_FPE // Floating Point Exception
+	VIRT     // Virtualization Exception
+	_
+	SECURITY // Security Exception
+	_
+	TRIPLE // Triple Fault
+	FPU    // FPU Error Interupt --Legacy--
+)
+
 var table = [size]segment.Seg128{
-	0x0:  segment.GateDesc{Offset: funcToPtr(isr0), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x1:  segment.GateDesc{Offset: funcToPtr(isr1), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x2:  segment.GateDesc{Offset: funcToPtr(isr2), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x3:  segment.GateDesc{Offset: funcToPtr(isr3), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x4:  segment.GateDesc{Offset: funcToPtr(isr4), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x5:  segment.GateDesc{Offset: funcToPtr(isr5), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x6:  segment.GateDesc{Offset: funcToPtr(isr6), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x7:  segment.GateDesc{Offset: funcToPtr(isr7), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x8:  segment.GateDesc{Offset: funcToPtr(isr8), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x9:  segment.GateDesc{Offset: funcToPtr(isr9), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0xa:  segment.GateDesc{Offset: funcToPtr(isr10), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0xb:  segment.GateDesc{Offset: funcToPtr(isr11), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0xc:  segment.GateDesc{Offset: funcToPtr(isr12), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0xd:  segment.GateDesc{Offset: funcToPtr(isr13), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0xe:  segment.GateDesc{Offset: funcToPtr(isr14), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0xf:  segment.GateDesc{Offset: funcToPtr(isr15), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x10: segment.GateDesc{Offset: funcToPtr(isr16), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x11: segment.GateDesc{Offset: funcToPtr(isr17), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x12: segment.GateDesc{Offset: funcToPtr(isr18), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x13: segment.GateDesc{Offset: funcToPtr(isr19), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x14: segment.GateDesc{Offset: funcToPtr(isr20), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x15: segment.GateDesc{Offset: funcToPtr(isr21), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x16: segment.GateDesc{Offset: funcToPtr(isr22), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x17: segment.GateDesc{Offset: funcToPtr(isr23), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x18: segment.GateDesc{Offset: funcToPtr(isr24), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x19: segment.GateDesc{Offset: funcToPtr(isr25), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x1a: segment.GateDesc{Offset: funcToPtr(isr26), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x1b: segment.GateDesc{Offset: funcToPtr(isr27), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x1c: segment.GateDesc{Offset: funcToPtr(isr28), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x1d: segment.GateDesc{Offset: funcToPtr(isr29), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x1e: segment.GateDesc{Offset: funcToPtr(isr30), Selector: 0x08, Type: segment.Interupt}.Pack(),
-	0x1f: segment.GateDesc{Offset: funcToPtr(isr31), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	DIV_0:    segment.GateDesc{Offset: funcToPtr(isr0), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	DEBUG:    segment.GateDesc{Offset: funcToPtr(isr1), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	NMI:      segment.GateDesc{Offset: funcToPtr(isr2), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	BREAK:    segment.GateDesc{Offset: funcToPtr(isr3), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	OVERFLOW: segment.GateDesc{Offset: funcToPtr(isr4), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	BRE:      segment.GateDesc{Offset: funcToPtr(isr5), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	INV_OP:   segment.GateDesc{Offset: funcToPtr(isr6), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	DNA:      segment.GateDesc{Offset: funcToPtr(isr7), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	DOUBLE:   segment.GateDesc{Offset: funcToPtr(isr8), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	CSO:      segment.GateDesc{Offset: funcToPtr(isr9), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	INV_TSS:  segment.GateDesc{Offset: funcToPtr(isr10), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	SNP:      segment.GateDesc{Offset: funcToPtr(isr11), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	SSF:      segment.GateDesc{Offset: funcToPtr(isr12), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	GPF:      segment.GateDesc{Offset: funcToPtr(isr13), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	PAGE:     segment.GateDesc{Offset: funcToPtr(isr14), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0xf:      segment.GateDesc{Offset: funcToPtr(isr15), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	X87_FPE:  segment.GateDesc{Offset: funcToPtr(isr16), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	ALIGN:    segment.GateDesc{Offset: funcToPtr(isr17), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	MACH:     segment.GateDesc{Offset: funcToPtr(isr18), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	SIMD_FPE: segment.GateDesc{Offset: funcToPtr(isr19), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	VIRT:     segment.GateDesc{Offset: funcToPtr(isr20), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x15:     segment.GateDesc{Offset: funcToPtr(isr21), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	SECURITY: segment.GateDesc{Offset: funcToPtr(isr22), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x17:     segment.GateDesc{Offset: funcToPtr(isr23), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	TRIPLE:   segment.GateDesc{Offset: funcToPtr(isr24), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	FPU:      segment.GateDesc{Offset: funcToPtr(isr25), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1a:     segment.GateDesc{Offset: funcToPtr(isr26), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1b:     segment.GateDesc{Offset: funcToPtr(isr27), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1c:     segment.GateDesc{Offset: funcToPtr(isr28), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1d:     segment.GateDesc{Offset: funcToPtr(isr29), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1e:     segment.GateDesc{Offset: funcToPtr(isr30), Selector: 0x08, Type: segment.Interupt}.Pack(),
+	0x1f:     segment.GateDesc{Offset: funcToPtr(isr31), Selector: 0x08, Type: segment.Interupt}.Pack(),
 
 	0x20: segment.GateDesc{Offset: funcToPtr(irq0), Selector: 0x08, Type: segment.Interupt}.Pack(),
 	0x21: segment.GateDesc{Offset: funcToPtr(irq1), Selector: 0x08, Type: segment.Interupt}.Pack(),
@@ -84,33 +115,38 @@ func init() {
 //extern __load_idt
 func loadIDT(*segment.TablePtrPacked)
 
+const (
+	PIC1 = 0x20
+	PIC2 = 0xA0
+)
+
 func remapIRQ() {
-	master := asm.InportB(0x21)
-	slave := asm.InportB(0xA1)
+	master := asm.InportB(PIC1 + 1)
+	slave := asm.InportB(PIC2 + 1)
 
-	asm.OutportB(0x20, 0x11)
+	asm.OutportB(PIC1, 0x11)
 	asm.IOWait()
-	asm.OutportB(0xA0, 0x11)
+	asm.OutportB(PIC2, 0x11)
 	asm.IOWait()
-	asm.OutportB(0x21, 0x20)
+	asm.OutportB(PIC1+1, 0x20)
 	asm.IOWait()
-	asm.OutportB(0xA1, 0x28)
+	asm.OutportB(PIC2+1, 0x28)
 	asm.IOWait()
-	asm.OutportB(0x21, 0x04)
+	asm.OutportB(PIC1+1, 0x04)
 	asm.IOWait()
-	asm.OutportB(0xA1, 0x02)
-	asm.IOWait()
-
-	asm.OutportB(0x21, 0x01)
-	asm.IOWait()
-	asm.OutportB(0xA1, 0x01)
+	asm.OutportB(PIC2+1, 0x02)
 	asm.IOWait()
 
-	//asm.OutportB(0xA1, 0xff)
-	//asm.OutportB(0x21, 0xff)
+	asm.OutportB(PIC1+1, 0x01)
+	asm.IOWait()
+	asm.OutportB(PIC2+1, 0x01)
+	asm.IOWait()
 
-	asm.OutportB(0x21, master)
-	asm.OutportB(0xA1, slave)
+	//asm.OutportB(PIC2+1, 0xff)
+	//asm.OutportB(PIC1+1, 0xff)
+
+	asm.OutportB(PIC2+1, master)
+	asm.OutportB(PIC2+1, slave)
 }
 
 type intsStruct struct {
@@ -212,6 +248,13 @@ func ISR(intNo, errCode, rip uint64) {
 	}
 
 	video.Print("Interrupt occured at ")
+	if rip > 0xFFFF800000000000 {
+		// happened in kernel
+		video.Println(elf.KernelElf.LookupSymbol(uintptr(rip)))
+	}else{
+		// happened in userspace
+		//video.Println((*elf.Program)(proc.Procs[proc.CurrentID].ElfHeader).LookupSymbol(uintptr(rip)))
+	}
 	video.PrintUint(rip)
 	video.NL()
 	if Interrupts.errHandlers[intNo] != nil {
@@ -228,6 +271,9 @@ func ISR(intNo, errCode, rip uint64) {
 //extern __break
 func breakPoint()
 
+//extern __enter_int
+func enterInt(entry func())
+
 var IrqRoutines [16]func()
 
 func AddIRQ(index uint8, query func()) {
@@ -241,8 +287,8 @@ func RemoveIRQ(index uint8) {
 
 func IRQ(intNo, errCode, rip uint) {
 	if intNo == 7 {
-		asm.OutportB(0x20, 0x0B)
-		irr := asm.InportB(0x20)
+		asm.OutportB(PIC1, 0x0B)
+		irr := asm.InportB(PIC1)
 		if irr&0x80 == 0 {
 			return
 		}
@@ -250,13 +296,22 @@ func IRQ(intNo, errCode, rip uint) {
 
 	handler := IrqRoutines[intNo-32]
 	if handler != nil {
-		//(*(*func())(unsafe.Pointer(handler)))()
-		handler()
+		if **(**uintptr)(unsafe.Pointer(&handler)) > 0xFFFF800000000000 {
+			handler()
+		} else {
+			enterInt(handler)
+		}
 	}
+	if intNo == 33 {
+		asm.InportB(0x60)
+		i := asm.InportB(0x61)
+		asm.OutportB(0x61, i|0x80)
+		asm.OutportB(0x61, i)
+	}
+	asm.OutportB(PIC1, 0x20)
 	if intNo >= 40 {
-		asm.OutportB(0xA0, 0x20)
+		asm.OutportB(PIC2, 0x20)
 	}
-	asm.OutportB(0x20, 0x20)
 }
 
 //extern __isr0

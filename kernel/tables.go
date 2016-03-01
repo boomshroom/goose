@@ -7,12 +7,14 @@ import (
 )
 
 var MultibootTable *MBTable
+var Modules []Mod
 
 func SetTable(t *MBTable){
 	if t == nil{
 		video.Error("Multiboot not valid", -1, true)
 	}
 	MultibootTable = t
+	Modules = t.Mods()
 }
 
 type MBTable struct{

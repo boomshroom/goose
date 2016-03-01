@@ -5,15 +5,38 @@ import (
 	"unsafe"
 	//"asm"
 	"runtime"
+	"proc"
 )
 
 var x, y int
-var termColor color.Color  = color.MakeColor(color.LIGHT_GRAY, color.BLACK)
+var termColor color.Color = color.MakeColor(color.LIGHT_GRAY, color.BLACK)
 var vidMem *[25][80]VidEntry = (*[25][80]VidEntry)(unsafe.Pointer(uintptr(0x000B8000)))
+
 //var ioPort uint16
-type VidEntry struct{
-	Char byte
+type VidEntry struct {
+	Char  byte
 	Color color.Color
+}
+
+func GetFrameBuffer() Printer {
+	return &fb
+}
+
+func PrintCurrent(){
+	Print("Attempting to kill proc ")
+	PrintHex(proc.CurrentID, false, true, true, 0)
+}
+
+type framebuffer struct{}
+
+var fb framebuffer = framebuffer{}
+
+type Printer interface {
+	Print(string)
+}
+
+func (f framebuffer) Print(s string) {
+	Print(s)
 }
 
 func init() {
@@ -22,7 +45,7 @@ func init() {
 	runtime.ErrorPrint = errorMsg
 }
 
-func MakeEntry(char byte)VidEntry{
+func MakeEntry(char byte) VidEntry {
 	return VidEntry{Char: char, Color: termColor}
 }
 
@@ -62,14 +85,14 @@ func PrintHex(num uint64, caps, prefix, newline bool, digits int8) {
 	}
 }
 
-func PrintUint(num uint64){
+func PrintUint(num uint64) {
 	PrintHex(num, false, true, false, 8)
 }
 
-func PrintBool(b bool){
-	if b{
+func PrintBool(b bool) {
+	if b {
 		Print("true")
-	}else{
+	} else {
 		Print("false")
 	}
 }
@@ -98,11 +121,11 @@ func PutChar(c rune) {
 		vidMem[y][x].Color = termColor
 		x += 4 - (x % 4)
 		updateCursor()
-	} else if c == '\b'{
+	} else if c == '\b' {
 		vidMem[y][x].Color = termColor
 		x--
 		updateCursor()
-	} else{
+	} else {
 		PutCharRaw(c)
 	}
 }
@@ -118,20 +141,21 @@ func PutCharRaw(c rune) {
 	}
 	updateCursor()
 }
+
 var check = true
 
-func updateCursor(){
+func updateCursor() {
 	if y > 24 {
 		Scroll()
 	}
 
-	vidMem[y][x].Color ^= color.MakeColor(color.WHITE,color.WHITE)
-/*
-	pos:= uint16(y)*80 + uint16(x)
-	asm.OutportB(ioPort, 0x0F)
-	asm.OutportB(ioPort+1, uint8(pos))
-	asm.OutportB(ioPort, 0x0F)
-	asm.OutportB(ioPort+1, uint8(pos>>8))*/
+	vidMem[y][x].Color ^= color.MakeColor(color.WHITE, color.WHITE)
+	/*
+		pos:= uint16(y)*80 + uint16(x)
+		asm.OutportB(ioPort, 0x0F)
+		asm.OutportB(ioPort+1, uint8(pos))
+		asm.OutportB(ioPort, 0x0F)
+		asm.OutportB(ioPort+1, uint8(pos>>8))*/
 }
 
 func Clear() {
@@ -145,7 +169,7 @@ func Clear() {
 	updateCursor()
 }
 
-func MoveCursor(dx, dy int){
+func MoveCursor(dx, dy int) {
 	vidMem[y][x].Color = termColor
 	x += dx
 	y += dy
@@ -169,11 +193,12 @@ func Error(errorMsg string, errorCode int, halt bool) {
 //extern __unwind_stack
 func unwindStack()
 
-func errorMsg(err string){
+func errorMsg(err string) {
 	Println(err)
 	unwindStack()
 	Println("System Halted.")
-	for {}
+	for {
+	}
 }
 
 func Scroll() {

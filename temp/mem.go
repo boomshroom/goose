@@ -2,10 +2,12 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
+	//"math/rand"
 )
 
-var mem [1024]int = [1024]int{0: 1}
+var mem Mem = make(Mem, 64)
+
+type Mem []int
 
 // Hack
 func RandMapEntry(m map[int]int)int{
@@ -16,9 +18,24 @@ func RandMapEntry(m map[int]int)int{
 }
 
 func main(){
-	vars := make(map[int]int)
+	mem[0] = 1
+	i := mem.Malloc(5)
+	//fmt.Println(mem)
+	mem.Malloc(3)
+	//fmt.Println(mem)
+	mem.Free(i)
+	//fmt.Println(mem)
+	s := mem.Malloc(32)
+	//fmt.Println(mem)
+	sub := mem[s: s+32]
+	sub.Malloc(8)
+	fmt.Println(mem)
+	mem.Malloc(6)
+	fmt.Println(mem)
 
-	for i:=0; i< 16; i++{
+	/*vars := make(map[int]int)
+
+	for i:=0; i< 4; i++{
 		if rand.Intn(2) == 0 && len(vars)!=0{
 			v := RandMapEntry(vars)
 			size := vars[v]
@@ -37,55 +54,59 @@ func main(){
 			}
 			fmt.Println("alloc", mem, size, v)
 		}
-	}
+	}*/
 }
 
-func Malloc(size int)int{
+func (m Mem)Malloc(size int)int{
 	if size==0{
 		//panic("Allocating size 0")
 		return 0
 	}
 	freeMark:=0
-	free:=mem[freeMark]
+	free:=m[freeMark]
 	i:=free
 	setFreeMark:=true
 	//fmt.Println(free)
 	for ;;i++{
-		if i>= len(mem){
+		if i>= len(m){
 			panic(fmt.Errorf("Not enough space for %v bytes", size))
 		}
-		if mem[i] != 0 && i == size+free-1{
-			mem[freeMark]=mem[i]
-			mem[i]=0
-			setFreeMark=false
-		}else if mem[i] != 0{
-			freeMark=i
-			free = mem[i]
-			i = free
-		}else if i==size+free{
+		if i==size+free{
+			//fmt.Println(size, free, i)
 			free=i+1
 			break
+		}else if m[i] != 0 && i == size+free-1{
+			m[freeMark]=m[i]
+			m[i]=0
+			setFreeMark=false
+		}else if m[i] != 0{
+			if size == 6 {
+				fmt.Println(i)
+			}
+			freeMark=i
+			free = m[i]
+			i = free
 		}
 	}
 	//fmt.Println(freeMark, free, i, setFreeMark)
-	mem[i-size]=size
+	m[i-size]=size
 	if setFreeMark{
-		mem[freeMark]=free
+		m[freeMark]=free
 	}
 	return i-size+1
 }
 
-func Free(ptr int){
+func (m Mem)Free(ptr int){
 	if ptr == 0{
 		return
 	}else if ptr < 2{
 		panic("Atempting to freeing important data")
 	} 
-	size:= mem[ptr-1]
+	size:= m[ptr-1]
 	
 	freeMark:=0
 	for{
-		free:=mem[freeMark]
+		free:=m[freeMark]
 		//fmt.Println(free, ptr, size)
 		if free==ptr || free==ptr-1{
 			//fmt.Println(free, ptr)
@@ -96,23 +117,25 @@ func Free(ptr int){
 
 			temp := freeMark
 			freeMark=free
-			free=mem[freeMark]
+			free=m[freeMark]
 			fmt.Println(freeMark)
 
 			if freeMark==ptr+size{
-				mem[temp]=0
+				m[temp]=0
 			}
 
 			break
 		}else*/ if free<ptr{
 			temp:=free
-			for ;mem[temp]==0;temp++ {
+			for ;m[temp]==0;temp++ {
 			}
 			freeMark=temp
 			//fmt.Println("Temp: ",temp)
 		}else{
-			mem[ptr+size-1]=free
-			mem[freeMark]=ptr-1
+			if free != ptr+size {
+				m[ptr+size-1]=free
+			}
+			m[freeMark]=ptr-1
 			break
 		}
 	}

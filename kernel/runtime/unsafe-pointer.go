@@ -12,7 +12,11 @@ type typeDesc struct{
 	equalfn uintptr
 	gc *[4]uintptr
 	reflection *string
-	uncommon uintptr
+	uncommon *struct{
+		name *string
+		pkg *string
+		Slice
+	}
 	ptrToThis *typeDesc
 	zero *uint64
 }
@@ -36,7 +40,7 @@ var UnsafePointerDesc = typeDesc{
 	0, // calculated at runtime because of go's func handling
 	&gc,
 	&reflection,
-	0,
+	nil,
 	nil,
 	&zero,
 }
@@ -57,7 +61,7 @@ func init(){
 		**(**uintptr)(unsafe.Pointer(&equalDummy)),
 		&gc,
 		&reflection,
-		0,
+		nil,
 		nil,
 		&zero,
 	}

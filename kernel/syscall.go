@@ -7,11 +7,20 @@ import (
 	"proc"
 	"unsafe"
 	"video"
+	"idt"
+	"page"
+	"tables"
+	"elf"
 )
 
 type inport struct {
 	ptr  *byte
 	port uint16
+}
+
+type interupt struct{
+	intNum uint64
+	entry func()
 }
 
 const (
@@ -22,7 +31,12 @@ const (
 	InportB
 	RequestCapability
 	RegisterInterupt
+	StartProc
 )
+
+//extern __start_app
+func startApp(func())
+
 
 var syscalls = [...]func(unsafe.Pointer){
 	invalid: func(p unsafe.Pointer){
@@ -45,7 +59,7 @@ var syscalls = [...]func(unsafe.Pointer){
 	},
 	InportB: func(p unsafe.Pointer) {
 		arg := (*inport)(p)
-		for _, port := range capability.Capabilities[proc.Current.Capability].Ports {
+		for _, port := range capability.Capabilities[proc.Procs[proc.CurrentID].Capability].Ports {
 			if port == arg.port {
 				*arg.ptr = asm.InportB(arg.port)
 				continue
@@ -54,18 +68,35 @@ var syscalls = [...]func(unsafe.Pointer){
 	},
 	RequestCapability: func(p unsafe.Pointer) {
 		capa := &capability.Capabilities[*(*uint64)(unsafe.Pointer(&p))]
-		if capa.OwnedProc == 0 && proc.Current.Capability == 0 {
-			capa.OwnedProc = proc.Current.Id
-			proc.Current.Capability = *(*uint)(p)
+		if capa.OwnedProc == 0 && proc.Procs[proc.CurrentID].Capability == 0 {
+			capa.OwnedProc = proc.CurrentID
+			proc.Procs[proc.CurrentID].Capability = *(*uint)(p)
 		}
 	},
 	RegisterInterupt: func(p unsafe.Pointer){
-		
+		intReq := *(*interupt)(p)
+		if intReq.intNum < 15 && idt.IrqRoutines[intReq.intNum+1]==nil {
+			page.NewPage(0x7FFFFFFFE000, page.K, page.PRESENT | page.USER | page.READ_WRITE)
+			idt.AddIRQ(uint8(intReq.intNum+1), intReq.entry)
+		}
+	},
+	StartProc: func(p unsafe.Pointer){
+		cmd := *(*string)(p)
+		for i:=0; i<len(tables.Modules); i++{
+			if tables.Modules[i].Name()==cmd {
+				app := elf.Parse(&tables.Modules[i].Bytes()[0])
+				app.CopyToMem()
+				return
+			}
+		}
 	},
 }
 
-func Syscall() {
-	l := proc.Current.SyscallLen
+//extern __break
+func breakPoint()
+
+func Syscall(kill bool) {
+	l := proc.Current.Len
 	if l > 40 {
 		l = 40
 	}
@@ -75,5 +106,26 @@ func Syscall() {
 			syscalls[sys.Id](sys.Args)
 		}
 	}
-	proc.Current.SyscallLen = 0
+	proc.Current.Len = 0
+
+	if proc.NumProcs == 0 {
+		video.Error("No more processes running!", 0, true)
+	}
+
+	if proc.CurrentID == 0 {
+		proc.CurrentID = 1
+	}
+
+	if kill {
+		//video.Print("Killing process ")
+		//video.PrintHex(proc.CurrentID, false, true, true, 0)
+		proc.KillProc()
+	}
+
+	proc.CurrentID++
+	if proc.CurrentID > proc.NumProcs {
+		proc.CurrentID = 1
+	}
+	p := &proc.Procs[proc.CurrentID]
+	p.Enable()
 }

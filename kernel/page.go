@@ -25,8 +25,13 @@ func invIndecies(PT, PD, PDP, PML4 uint64) uint64 {
 
 var nextPage uintptr = 0x400000
 
-func NewPage(address uintptr, size PageSize, props PageEntryPacked) {
-	MapAddress(address, nextPage, size, props)
+func NewPage(address uintptr, size PageSize, props PageEntryPacked) (physical PageEntryPacked){
+	if len(freeStack)!=0 && size==K{
+		physical = MapAddress(address, freeStack[len(freeStack)-1].Address(), K, props)
+		freeStack = freeStack[:len(freeStack)-1]
+		return
+	}
+	physical = MapAddress(address, nextPage, size, props)
 	switch size {
 	case G:
 		nextPage = (nextPage&^0x40000000 - 1) + 0x40000000
@@ -35,9 +40,14 @@ func NewPage(address uintptr, size PageSize, props PageEntryPacked) {
 	default:
 		nextPage = nextPage&^0xFFF + 0x1000
 	}
+	return;
 }
 
-func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked) {
+func (p *PageEntryPacked)Enable(logical uintptr, size PageSize){
+	*p = MapAddress(logical, p.Address(), size, (*p)&0xFFF)
+}
+
+func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked) PageEntryPacked{
 
 	ml4Entry := &pml4[(logical>>39)&0x1FF]
 	if *ml4Entry&PRESENT == 0 {
@@ -49,7 +59,7 @@ func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked)
 	if size == G {
 		*dptEntry = PageEntry{Address: (*Page)(unsafe.Pointer(physical)), Present: true, Large: true}.Pack()
 		dptEntry.SetProp(props, true)
-		return
+		return *dptEntry;
 	} else if *dptEntry&(PRESENT|LARGE) != PRESENT {
 		*dptEntry = PageEntry{Address: nextPhysAddr(), Present: true}.Pack()
 		for i := range dptEntry.NextLevel() {
@@ -61,7 +71,7 @@ func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked)
 	if size == M {
 		*pdtEntry = PageEntry{Address: (*Page)(unsafe.Pointer(physical)), Present: true, Large: true}.Pack()
 		pdtEntry.SetProp(props, true)
-		return
+		return *pdtEntry
 	} else if *pdtEntry&(PRESENT|LARGE) != PRESENT {
 		addr := nextPhysAddr()
 		*pdtEntry = PageEntry{Address: addr, Present: true}.Pack()
@@ -81,11 +91,13 @@ func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked)
 	pageEntry := &pdtEntry.NextLevel()[(logical>>12)&0x1FF]
 	*pageEntry = PageEntry{Address: (*Page)(unsafe.Pointer(physical)), Present: true}.Pack()
 	pageEntry.SetProp(props, true)
+	return *pageEntry
 }
 
 func nextPhysAddr() *Page {
 	l := len(stack)
 	stack = stack[:l+1]
+	stack[l] = Page{}
 	return (*Page)(unsafe.Pointer(pml4.PhysAddr(uintptr(unsafe.Pointer(&stack[l])))))
 }
 
@@ -241,12 +253,19 @@ func (entry PageEntryPacked) NextLevel() *Page {
 	return (*Page)(unsafe.Pointer(e))
 }
 
+func (entry *PageEntryPacked) Free(){
+	entry.SetProp(PRESENT, false)
+	freeStack = freeStack[:len(freeStack)+1]
+	freeStack[len(freeStack)-1] = *entry
+}
+
 func SetPageLoc(page *Page) {
 	pml4 = page
 }
 
 var (
 	stack []Page
+	freeStack []PageEntryPacked
 	pml4  *Page
 )
 
@@ -255,7 +274,8 @@ func kernelEnd() uintptr
 
 func init() {
 	stackBegin := (kernelEnd() &^ 0xFFF) + 0x1000
-	stack = (*[1 << 30]Page)(unsafe.Pointer(stackBegin))[:0 : (0xFFFF800000200000-stackBegin)>>12]
+	stack = (*[1 << 30]Page)(unsafe.Pointer(stackBegin))[:0 : ((0xFFFF800000200000-stackBegin)>>12)-1]
+	freeStack = (*[512]PageEntryPacked)(unsafe.Pointer(uintptr(0xFFFF8000001FF000)))[:0]
 
 	pml4.GetEntry(0x40000000, PDPT).SetProp(PRESENT, false)
 	//for i := range stack{
