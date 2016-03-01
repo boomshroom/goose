@@ -2,26 +2,26 @@ package runtime
 
 import "unsafe"
 
-type typeDesc struct{
-	code uint8
-	align uint8
+type typeDesc struct {
+	code       uint8
+	align      uint8
 	fieldAlign uint8
-	size uintptr
-	hash uint32
-	hashfn uintptr
-	equalfn uintptr
-	gc *[4]uintptr
+	size       uintptr
+	hash       uint32
+	hashfn     uintptr
+	equalfn    uintptr
+	gc         *[4]uintptr
 	reflection *string
-	uncommon *struct{
+	uncommon   *struct {
 		name *string
-		pkg *string
+		pkg  *string
 		Slice
 	}
 	ptrToThis *typeDesc
-	zero *uint64
+	zero      *uint64
 }
 
-type fieldAlign struct{
+type fieldAlign struct {
 	c byte
 	p *struct{}
 }
@@ -46,9 +46,9 @@ var UnsafePointerDesc = typeDesc{
 }
 
 //extern _get_ptr_desc
-func getUnsafePointerDesc()*typeDesc
+func getUnsafePointerDesc() *typeDesc
 
-func init(){
+func init() {
 	hashDummy := TypeHashIdentity
 	equalDummy := TypeEqualIdentity
 	*getUnsafePointerDesc() = typeDesc{

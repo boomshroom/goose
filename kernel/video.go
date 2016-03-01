@@ -4,8 +4,8 @@ import (
 	"color"
 	"unsafe"
 	//"asm"
-	"runtime"
 	"proc"
+	"runtime"
 )
 
 var x, y int
@@ -22,7 +22,7 @@ func GetFrameBuffer() Printer {
 	return &fb
 }
 
-func PrintCurrent(){
+func PrintCurrent() {
 	Print("Attempting to kill proc ")
 	PrintHex(proc.CurrentID, false, true, true, 0)
 }

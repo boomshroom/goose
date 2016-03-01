@@ -25,8 +25,8 @@ func invIndecies(PT, PD, PDP, PML4 uint64) uint64 {
 
 var nextPage uintptr = 0x400000
 
-func NewPage(address uintptr, size PageSize, props PageEntryPacked) (physical PageEntryPacked){
-	if len(freeStack)!=0 && size==K{
+func NewPage(address uintptr, size PageSize, props PageEntryPacked) (physical PageEntryPacked) {
+	if len(freeStack) != 0 && size == K {
 		physical = MapAddress(address, freeStack[len(freeStack)-1].Address(), K, props)
 		freeStack = freeStack[:len(freeStack)-1]
 		return
@@ -40,14 +40,14 @@ func NewPage(address uintptr, size PageSize, props PageEntryPacked) (physical Pa
 	default:
 		nextPage = nextPage&^0xFFF + 0x1000
 	}
-	return;
+	return
 }
 
-func (p *PageEntryPacked)Enable(logical uintptr, size PageSize){
+func (p *PageEntryPacked) Enable(logical uintptr, size PageSize) {
 	*p = MapAddress(logical, p.Address(), size, (*p)&0xFFF)
 }
 
-func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked) PageEntryPacked{
+func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked) PageEntryPacked {
 
 	ml4Entry := &pml4[(logical>>39)&0x1FF]
 	if *ml4Entry&PRESENT == 0 {
@@ -59,7 +59,7 @@ func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked)
 	if size == G {
 		*dptEntry = PageEntry{Address: (*Page)(unsafe.Pointer(physical)), Present: true, Large: true}.Pack()
 		dptEntry.SetProp(props, true)
-		return *dptEntry;
+		return *dptEntry
 	} else if *dptEntry&(PRESENT|LARGE) != PRESENT {
 		*dptEntry = PageEntry{Address: nextPhysAddr(), Present: true}.Pack()
 		for i := range dptEntry.NextLevel() {
@@ -253,7 +253,7 @@ func (entry PageEntryPacked) NextLevel() *Page {
 	return (*Page)(unsafe.Pointer(e))
 }
 
-func (entry *PageEntryPacked) Free(){
+func (entry *PageEntryPacked) Free() {
 	entry.SetProp(PRESENT, false)
 	freeStack = freeStack[:len(freeStack)+1]
 	freeStack[len(freeStack)-1] = *entry
@@ -264,9 +264,9 @@ func SetPageLoc(page *Page) {
 }
 
 var (
-	stack []Page
+	stack     []Page
 	freeStack []PageEntryPacked
-	pml4  *Page
+	pml4      *Page
 )
 
 //extern __kernel_end

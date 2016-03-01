@@ -2,10 +2,10 @@ package idt
 
 import (
 	"asm"
+	"elf"
 	"segment"
 	"unsafe"
 	"video"
-	"elf"
 	//"proc"
 )
 
@@ -251,7 +251,7 @@ func ISR(intNo, errCode, rip uint64) {
 	if rip > 0xFFFF800000000000 {
 		// happened in kernel
 		video.Println(elf.KernelElf.LookupSymbol(uintptr(rip)))
-	}else{
+	} else {
 		// happened in userspace
 		//video.Println((*elf.Program)(proc.Procs[proc.CurrentID].ElfHeader).LookupSymbol(uintptr(rip)))
 	}
