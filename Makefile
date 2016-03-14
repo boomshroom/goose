@@ -19,7 +19,7 @@ boot-nogrub: kernel.bin
 
 .PHONY: boot
 boot: kernel.iso
-	qemu-system-x86_64 -cdrom kernel.iso
+	qemu-system-x86_64 -no-reboot -d int -cdrom kernel.iso
 
 .PHONY: bochs
 bochs: kernel.iso

@@ -281,6 +281,5 @@ func init() {
 	//for i := range stack{
 	//	stack[i] = Page{}
 	//}
-	//MapAddress(0xFFFFFFFFFFFFF000, uintptr(unsafe.Pointer(tables.MultibootTable)), K, 0)
 	//tables.MultibootTable = (*tables.MBTable)(unsafe.Pointer(uintptr(0xFFFFFFFFFFFFF000)))
 }

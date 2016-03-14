@@ -4,6 +4,10 @@ import (
 	"runtime"
 	"unsafe"
 	"video"
+	"page"
+	"vbe"
+	"vga"
+	"color"
 )
 
 var MultibootTable *MBTable
@@ -15,12 +19,31 @@ func SetTable(t *MBTable) {
 	}
 	MultibootTable = t
 	Modules = t.Mods()
+	if t.Flags&GraphicsTable != 0 && t.VideoInfo.FBType == RGB {
+		if t.VideoInfo.FrameBuffer.BPP != 32 {
+			video.Error("VBE wrong pixel size", int(t.VideoInfo.FrameBuffer.BPP), true)
+		}
+		fbLen := t.VideoInfo.FrameBuffer.Pitch * t.VideoInfo.FrameBuffer.Height
+		var array *[1<<30]color.BGRA32
+		if fbLen < 0x1000{
+			page.MapAddress(0xFFFFFFFFFFFFF000, uintptr(unsafe.Pointer(t.VideoInfo.FrameBuffer.Addr)), page.K, 0)
+			array = (*[1<<30]color.BGRA32)(unsafe.Pointer(uintptr(0xFFFFFFFFFFFFF000)))
+
+		}else if fbLen < 0x200000{
+			page.MapAddress(0xFFFFFFFFFFE00000, uintptr(unsafe.Pointer(t.VideoInfo.FrameBuffer.Addr)), page.M, 0)
+			array = (*[1<<30]color.BGRA32)(unsafe.Pointer(uintptr(0xFFFFFFFFFFE00000)))
+		}
+		l := t.VideoInfo.FrameBuffer.Pitch * t.VideoInfo.FrameBuffer.Height / uint32(unsafe.Sizeof(array[0]))
+		vbe.SetFrameBuffer(vbe.FrameBuffer{Buf: array[:l:l], Pitch: uint(t.VideoInfo.FrameBuffer.Pitch)/4}, uint(t.VideoInfo.FrameBuffer.Width), uint(t.VideoInfo.FrameBuffer.Height))
+	}else{
+		vga.SetFrameBuffer()
+	}
 }
 
 type MBTable struct {
-	Flags                    Flags
+	Flags
 	MemLower, MemUpper       uint32
-	BootDevice               BootDevice
+	BootDevice
 	cmd                      uint32
 	ModsCount, modsAddr      uint32
 	syms                     [4]uint32
@@ -29,6 +52,7 @@ type MBTable struct {
 	configTable              uint32
 	bootloaderName           uint32
 	apmTable                 uint32
+	VideoInfo
 }
 
 func (t *MBTable) Command() string {
@@ -36,6 +60,13 @@ func (t *MBTable) Command() string {
 		return ""
 	}
 	return runtime.GoString((*uint8)(unsafe.Pointer(uintptr(t.cmd))))
+}
+
+func (t *MBTable) BootLoader() string {
+	if t.Flags&CmdLine == 0 {
+		return ""
+	}
+	return runtime.GoString((*uint8)(unsafe.Pointer(uintptr(t.bootloaderName))))
 }
 
 func (t *MBTable) Mods() []Mod {
@@ -150,4 +181,28 @@ type APM struct {
 	cseg16, dseg                uint16
 	flags                       uint16
 	csegLen, cseg16Len, dsegLen uint16
+}
+
+type FBType uint8
+
+const(
+	Indexed FBType = iota
+	RGB
+	EGA_TEXT
+)
+
+type FrameBuffer struct{
+	Addr *uint32
+	Pitch, Width, Height uint32
+	BPP uint8
+	FBType
+}
+
+type VideoInfo struct{
+	ControlInfo, ModeInfo uint32
+	Mode uint16
+	Interface struct{
+		Seg, Off, Len uint16
+	}
+	FrameBuffer
 }

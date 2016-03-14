@@ -52,7 +52,7 @@ func main() {
 			prev = 0
 		}
 	}*/
-	startApp(&proc)
+	//startApp(&proc)
 }
 
 func Int() {

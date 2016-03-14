@@ -8,7 +8,6 @@ import (
 	_ "syscall"
 	"tables"
 	"video"
-	//"unsafe"
 )
 
 //extern __start_app
@@ -34,8 +33,32 @@ func main() {
 	video.Print("by Tom Gascoigne <tom.gascoigne.me>\n")
 	video.Print("and Angelo B\n")
 
-	fb := video.GetFrameBuffer()
-	fb.Print("Interfaces ahoy!\n")
+	//fb := video.GetFrameBuffer()
+	//fb.Print("Interfaces ahoy!\n")
+
+	//fb := vbe.GetPrinter()
+
+	//fb.SetPixel(1, 1, vbe.Color{R: 0xff, B: 0xff, G: 0xff})
+
+	//breakPoint()
+
+	/*for ch := 'A'; ch <= 'Z'; ch++{
+		fb.PutChar(ch)
+	}
+	fb.PutChar('\n')
+
+	for ch := 'a'; ch <= 'z'; ch++{
+		fb.PutChar(ch)
+	}
+	fb.PutChar('\n')
+	for ch := '0'; ch <= '9'; ch++{
+		fb.PutChar(ch)
+	}*/
+
+	//fb.PutChar('A', 2, 2)
+
+
+	//*(*int64)(unsafe.Pointer(uintptr(0xFFFFFFFFFFFFF000))) = -1
 
 	if tables.MultibootTable.Flags&tables.Mods == 0 {
 		video.Println("Mods dissabled")
@@ -55,7 +78,7 @@ func main() {
 				video.Println("Launching App!")
 
 				println(app.Entry)
-
+				//breakPoint()
 				startApp(app.Func())
 			}
 		}

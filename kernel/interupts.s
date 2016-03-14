@@ -108,11 +108,11 @@ __isr12:
 	
 __isr13:
 	cli
-	xchg bx,bx
 	push byte 13
 	jmp common_isr
 	
 __isr14:
+	xchg bx,bx
 	cli
 	push byte 14
 	jmp common_isr

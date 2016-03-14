@@ -65,6 +65,8 @@ __loader:
 	mov rdi, rbx
 	call go.tables.SetTable
 
+	xchg bx,bx
+
 	call main.main
 		
 __kill:
@@ -72,6 +74,7 @@ __kill:
 	jmp __kill
 
 __break:
+	xchg bx,bx
 	ret
 
 __go_print_string:

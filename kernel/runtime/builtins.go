@@ -8,7 +8,6 @@ type Array [1 << 30]uint8
 func breakPoint()
 
 func MemCmp(str1, str2 *Array, count int) int32 {
-	breakPoint()
 	for i := 0; i < count; i++ {
 		if str1[i] < str2[i] {
 			return -1

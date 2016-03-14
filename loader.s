@@ -33,30 +33,44 @@ extern go.types.EqualIdent
 bits 32
 
 ; Multiboot stuff
-MODULEALIGN equ  1<<0
-MEMINFO     equ  1<<1
-FLAGS       equ  MODULEALIGN | MEMINFO
-MAGIC       equ  0x1BADB002
-CHECKSUM    equ -(MAGIC + FLAGS)
+MODULEALIGN	equ  1<<0
+MEMINFO		equ  1<<1
+VIDEOINFO	equ  1<<2
+FLAGS		equ  MODULEALIGN | MEMINFO | VIDEOINFO
+MAGIC		equ  0x1BADB002
+CHECKSUM	equ -(MAGIC + FLAGS)
+;MAGIC		equ 0xE85250D6
+;ARCH		equ 0x0
+;HDR_LEN		equ MultiBootHeader.end - MultiBootHeader
+;CHECKSUM	equ -(MAGIC + ARCH + HDR_LEN)
 
 section .text
 
-align 4
+;align 4
+align 8
 MultiBootHeader:
-    dd MAGIC
-    dd FLAGS
-    dd CHECKSUM
+	dd MAGIC
+	dd FLAGS
+	dd CHECKSUM
+	dd 0, 0, 0, 0, 0 ; Only neaded for aout kludge
+	dd 0
+	dd 0
+	dd 0
+	dd 32
+;	dd MAGIC
+;	dd ARCH
+;	dd HDR_LEN
+;	dd
+;.end:
 
 STACKSIZE equ 0x4000  ; Define our stack size at 16k
 
 loader:
 	cmp eax, MAGIC + 0x10000000
-	je mb_start
-	mov [multiboot_table], dword 0
-	jmp start
-	mb_start:
+	je .mb_start
+	mov ebx, dword 0
+	.mb_start:
 	mov [multiboot_table], ebx
-	start:
 
 	mov esp, stack + STACKSIZE ; Setup stack pointer
 	
