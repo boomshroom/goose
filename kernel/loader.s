@@ -9,6 +9,7 @@ global __kernel_end
 global __start_app
 global __unwind_stack
 global __enter_int
+global __invlpg
 
 global __go_print_string
 global __go_print_uint64
@@ -87,6 +88,10 @@ __go_print_bool:
     jmp go.video.PrintBool
 __go_print_nl:
     jmp go.video.NL
+
+__invlpg:
+	invlpg [rdi]
+	ret
 		
 __load_gdt:
 	cli

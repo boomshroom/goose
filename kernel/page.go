@@ -2,6 +2,7 @@ package page
 
 import (
 	"unsafe"
+	"mmap"
 	//"tables"
 )
 
@@ -24,6 +25,7 @@ func invIndecies(PT, PD, PDP, PML4 uint64) uint64 {
 */
 
 var nextPage uintptr = 0x400000
+var nextSeg int = 0
 
 func NewPage(address uintptr, size PageSize, props PageEntryPacked) (physical PageEntryPacked) {
 	if len(freeStack) != 0 && size == K {
@@ -31,20 +33,49 @@ func NewPage(address uintptr, size PageSize, props PageEntryPacked) (physical Pa
 		freeStack = freeStack[:len(freeStack)-1]
 		return
 	}
+
+seg_find:
+	for i:=nextSeg; i<len(mmap.MMap); i++ {
+		seg := &mmap.MMap[i]
+		if seg.Accessable() && nextPage >= seg.Base() {
+			switch size {
+			case G:
+				if nextPage&^0x3FFFFFFF + 0x40000000 <= seg.End() {
+					break seg_find
+				}
+			case M:
+				if nextPage&^0x1FFFFF + 0x200000 <= seg.End() {
+					break seg_find
+				}
+			default:
+				if nextPage&^0xFFF + 0x1000 <= seg.End() {
+					break seg_find
+				}
+			}
+			nextPage = seg.Base()
+			break
+		}
+		println("No available page!")
+		for{}
+	}
 	physical = MapAddress(address, nextPage, size, props)
 	switch size {
 	case G:
-		nextPage = (nextPage&^0x40000000 - 1) + 0x40000000
+		nextPage = nextPage&^0x3FFFFFFF + 0x40000000
 	case M:
-		nextPage = (nextPage&^0x200000 - 1) + 0x200000
+		nextPage = nextPage&^0x1FFFFF + 0x200000
 	default:
 		nextPage = nextPage&^0xFFF + 0x1000
 	}
 	return
 }
 
+//extern __invlpg
+func invlpg(uintptr)
+
 func (p *PageEntryPacked) Enable(logical uintptr, size PageSize) {
 	*p = MapAddress(logical, p.Address(), size, (*p)&0xFFF)
+	invlpg(logical)
 }
 
 func MapAddress(logical, physical uintptr, size PageSize, props PageEntryPacked) PageEntryPacked {

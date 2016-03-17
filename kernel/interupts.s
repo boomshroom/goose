@@ -112,7 +112,6 @@ __isr13:
 	jmp common_isr
 	
 __isr14:
-	xchg bx,bx
 	cli
 	push byte 14
 	jmp common_isr
@@ -226,16 +225,12 @@ extern go.video.PrintCurrent
 common_isr:
 
 	push rax
-	mov rax, [rsp+0x18] ; cs
+	mov rax, [rsp+0x20] ; cs
     test rax, 3
 
     jz .kernel_panic
 
     swapgs
-    mov rax, [gs:proc.id] ; Killing wrong process, something is wrong
-    cmp rax, 1
-    swapgs
-    je .kernel_panic
 
     mov rdi, -1
     call go.syscall.Syscall

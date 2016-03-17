@@ -8,6 +8,7 @@ import (
 	"vbe"
 	"vga"
 	"color"
+	"mmap"
 )
 
 var MultibootTable *MBTable
@@ -19,6 +20,7 @@ func SetTable(t *MBTable) {
 	}
 	MultibootTable = t
 	Modules = t.Mods()
+	t.LoadMMap()
 	if t.Flags&GraphicsTable != 0 && t.VideoInfo.FBType == RGB {
 		if t.VideoInfo.FrameBuffer.BPP != 32 {
 			video.Error("VBE wrong pixel size", int(t.VideoInfo.FrameBuffer.BPP), true)
@@ -77,13 +79,13 @@ func (t *MBTable) Mods() []Mod {
 	return array[:t.ModsCount:t.ModsCount]
 }
 
-func (t *MBTable) MMap() MemoryMap {
+func (t *MBTable) LoadMMap() {
 	if t.Flags&MMap == 0 {
-		return nil
+		video.Error("No Memory Map", int(t.Flags), true)
 	}
-	array := (*[1 << 30]MemorySegment)(unsafe.Pointer(uintptr(t.mmapAddr)))
-	l := t.mmapLength / uint32(unsafe.Sizeof(MemorySegment))
-	return MemoryMap(array[:l:l])
+	array := (*[1 << 30]mmap.MemorySegment)(unsafe.Pointer(uintptr(t.mmapAddr)))
+	l := t.mmapLength / uint32(unsafe.Sizeof(mmap.MemorySegment))
+	mmap.MMap = mmap.MemoryMap(array[:l:l])
 }
 
 func (t *MBTable) APMTable() *APM {
