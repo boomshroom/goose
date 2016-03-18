@@ -1,7 +1,12 @@
 efi
 testapp/temp
 testapp/hello
+testapp/main
+testapp/proc2/proc2
 temp/malloctest
+disassembly
+isodir/boot/*
+!isodir/boot/grub
 gctest
 sysroot
 *.ini

@@ -2,12 +2,13 @@ package main
 
 import (
 	"elf"
+	"multiboot"
+	"video"
+	// Run initializers
 	_ "gdt"
 	_ "idt"
 	_ "kbd"
-	_ "syscall"
-	"tables"
-	"video"
+	//_ "syscall"
 )
 
 //extern __start_app
@@ -33,46 +34,19 @@ func main() {
 	video.Print("by Tom Gascoigne <tom.gascoigne.me>\n")
 	video.Print("and Angelo B\n")
 
-	//fb := video.GetFrameBuffer()
-	//fb.Print("Interfaces ahoy!\n")
-
-	//fb := vbe.GetPrinter()
-
-	//fb.SetPixel(1, 1, vbe.Color{R: 0xff, B: 0xff, G: 0xff})
-
-	//breakPoint()
-
-	/*for ch := 'A'; ch <= 'Z'; ch++{
-		fb.PutChar(ch)
-	}
-	fb.PutChar('\n')
-
-	for ch := 'a'; ch <= 'z'; ch++{
-		fb.PutChar(ch)
-	}
-	fb.PutChar('\n')
-	for ch := '0'; ch <= '9'; ch++{
-		fb.PutChar(ch)
-	}*/
-
-	//fb.PutChar('A', 2, 2)
-
-
-	//*(*int64)(unsafe.Pointer(uintptr(0xFFFFFFFFFFFFF000))) = -1
-
-	if tables.MultibootTable.Flags&tables.Mods == 0 {
+	if multiboot.MultibootTable.Flags&multiboot.Mods == 0 {
 		video.Println("Mods dissabled")
 	} else {
-		if len(tables.Modules) == 0 {
+		if len(multiboot.Modules) == 0 {
 			video.Print("No ")
 		}
 		video.Println("Modules loaded")
-		for i := 0; i < len(tables.Modules); i++ {
-			video.Println(tables.Modules[i].Name())
-			if tables.Modules[i].Name() == "init" {
+		for i := 0; i < len(multiboot.Modules); i++ {
+			video.Println(multiboot.Modules[i].Name())
+			if multiboot.Modules[i].Name() == "init" {
 
 				video.Println("Reading App...")
-				app := elf.Parse(&tables.Modules[i].Bytes()[0])
+				app := elf.Parse(&multiboot.Modules[i].Bytes()[0])
 				video.Println("Loading App...")
 				app.CopyToMem()
 				video.Println("Launching App!")

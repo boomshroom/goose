@@ -31,7 +31,7 @@ extern go.video.NL
 extern main.main
 extern __go_init_main
 extern go.page.SetPageLoc
-extern go.tables.SetTable
+extern go.multiboot.SetTable
 extern go.gdt.SetKernelStack
 extern go.elf.KernelElf
 extern go.syscall.Syscall
@@ -64,9 +64,7 @@ __loader:
 	call __go_init_main
 
 	mov rdi, rbx
-	call go.tables.SetTable
-
-	xchg bx,bx
+	call go.multiboot.SetTable
 
 	call main.main
 		

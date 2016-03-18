@@ -35,9 +35,9 @@ func NewPage(address uintptr, size PageSize, props PageEntryPacked) (physical Pa
 	}
 
 seg_find:
-	for i:=nextSeg; i<len(mmap.MMap); i++ {
-		seg := &mmap.MMap[i]
-		if seg.Accessable() && nextPage >= seg.Base() {
+	for i:=nextSeg; i<mmap.MMap.Length(); i++ {
+		seg := mmap.MMap.Get(i)
+		if seg.Available() && nextPage >= seg.Base() {
 			switch size {
 			case G:
 				if nextPage&^0x3FFFFFFF + 0x40000000 <= seg.End() {

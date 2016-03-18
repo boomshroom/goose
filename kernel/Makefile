@@ -7,7 +7,7 @@ INCLUDE_DIRS = -Ipkg/.
 
 ### Sources
 
-CORE_SOURCES = pkg/loader.s.o pkg/interupts.s.o pkg/asm.s.o pkg/asm.o pkg/capability.o pkg/segment.o pkg/mmap.o pkg/page.o pkg/proc.o pkg/gdt.o pkg/runtime.o pkg/runtime_asm.o pkg/color.o pkg/video.o pkg/vbe.o pkg/vga.o pkg/tables.o pkg/elf.o pkg/idt.o pkg/kbd.o pkg/syscall.o pkg/goose.o
+CORE_SOURCES = pkg/loader.s.o pkg/interupts.s.o pkg/asm.s.o pkg/asm.o pkg/capability.o pkg/segment.o pkg/mmap.o pkg/page.o pkg/proc.o pkg/gdt.o pkg/runtime.o pkg/runtime_asm.o pkg/color.o pkg/video.o pkg/vbe.o pkg/vga.o pkg/multiboot.o pkg/elf.o pkg/idt.o pkg/kbd.o pkg/syscall.o pkg/goose.o
 # 
 SOURCE_OBJECTS = $(CORE_SOURCES)
  

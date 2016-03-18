@@ -8,7 +8,7 @@ import (
 	"kbd"
 	"page"
 	"proc"
-	"tables"
+	"multiboot"
 	"unsafe"
 	"video"
 )
@@ -81,9 +81,9 @@ var syscalls = [...]func(unsafe.Pointer){
 	},
 	StartProc: func(p unsafe.Pointer) {
 		cmd := *(*string)(p)
-		for i := 0; i < len(tables.Modules); i++ {
-			if tables.Modules[i].Name() == cmd {
-				app := elf.Parse(&tables.Modules[i].Bytes()[0])
+		for i := 0; i < len(multiboot.Modules); i++ {
+			if multiboot.Modules[i].Name() == cmd {
+				app := elf.Parse(&multiboot.Modules[i].Bytes()[0])
 				app.CopyToMem()
 				return
 			}
